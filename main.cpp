@@ -32,9 +32,25 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	z80machine test;
+	boost::variant<uint8_t, uint16_t> r;
+	std::cout << (int)test.main['a'] << "\n";
+	test.main['a'] = 5;
+	r = test.main['a'];
+	r = (uint8_t)7;
+	std::cout << (int)test.main['a'] << "\n";
+
 	try {
 		std::string source = readFile(argv[1]);
-		tokeniseSource(source);
+		z80prog prog = tokeniseSource(source);
+
+		for (const auto &i : prog) {
+			if (!i.label.empty()) std::cout << i.label << ": ";
+			std::cout << op_t_str.at((size_t)i.op) << ' ';
+			if (!i.operand1.empty()) std::cout << i.operand1;
+			if (!i.operand2.empty()) std::cout << ',' << i.operand2;
+			std::cout << "\n";
+		}
 	} catch(const char *e) {
 		std::cerr << e << "\n";
 		return 1;
