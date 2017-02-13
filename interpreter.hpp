@@ -58,16 +58,46 @@ static const std::array<std::string, (size_t)op_t::NUM_OPS> op_t_str{{
 
 class z80regblock {
 public:
+	enum flag_bits {
+		Carry,
+		Subtract,
+		Parity,
+		F3,
+		HalfCarry,
+		F5,
+		Zero,
+		Sign,
+	};
+
 	uint8_t& operator[](const char r);
 	uint16_t& operator[](const char *r);
 
+	static bool is_reg(char r);
+	static bool is_reg(const char *r);
 private:
-	std::array<uint8_t, 8> block;
 	static const std::string ACTUAL_REGS;
+	std::array<uint8_t, 8> block;
 };
+
+struct z80instruction {
+	op_t op;
+	std::string operand1;
+	std::string operand2;
+	std::string label;
+};
+
+std::ostream& operator<<(std::ostream& os, const z80instruction& ins);
+
+using z80prog = std::vector<z80instruction>;
 
 class z80machine {
 public:
+
+	void run(const z80prog &prog);
+	std::string register_dump();
+	boost::variant<std::string, uint8_t, uint16_t> get_val(const std::string &val);
+	uint16_t find_label(const std::string &l);
+
 	void nop_func();
 	void ret_func();
 	void end_func();
@@ -103,6 +133,7 @@ public:
 	uint16_t pc;  // program counter
 
 	std::array<uint8_t, 64*1024> mem; // 64KB mem
+	z80prog cur_prog;
 };
 
 using op0func_t = std::function<void(z80machine*)>;
@@ -133,15 +164,6 @@ static const operations_map OPERATIONS {{
 	&z80machine::jr_func,
 	&z80machine::call_func,
 }};
-
-struct z80instruction {
-	op_t op;
-	std::string operand1;
-	std::string operand2;
-	std::string label;
-};
-
-using z80prog = std::vector<z80instruction>;
 
 z80prog tokeniseSource(const std::string &source);
 

@@ -1,7 +1,7 @@
 CXX=clang++
 CXXFLAGS=-Wall -Wextra -pedantic -std=c++14 -g -Wno-unused-parameter
 
-CXXFILES=main.cpp interpreter.cpp
+CXXFILES=main.cpp register_machine.cpp
 OBJFILES=$(addprefix $(OBJDIR)/,$(CXXFILES:.cpp=.o))
 OBJDIR=obj
 

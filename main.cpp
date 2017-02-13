@@ -1,8 +1,9 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <unistd.h>
 
-#include "interpreter.hpp"
+#include "register_machine.hpp"
 
 std::string readFile(const std::string &filename)
 {
@@ -17,41 +18,64 @@ std::string readFile(const std::string &filename)
 
 void printUsage(const char *arg0)
 {
-	printf("%s - a z80 interpreter\n", arg0);
-	printf("\n");
-	printf("usage: %s file\n", arg0);
-	printf("\n");
-	printf("file - the z80 source to run\n");
-	printf("\n");
+	static const char *USAGE = ""
+		"%s - an interpreter of some sort.\n"
+		"Does something with stacks\n"
+		"\n"
+		"Usage: %s [-v] [-s] -i file\n"
+		"\n"
+		"-v    -  Verbose output\n"
+		"-s    -  Stack output\n"
+		"-h    -  This help text\n"
+		"file  -  ASM source file to run\n";
+	printf(USAGE, arg0, arg0);
 }
 
 int main(int argc, char **argv)
 {
-	if (argc != 2) {
+	bool verbose = false;
+	bool stack = false;
+	const char *filepath = "";
+	int c = 0;
+	while ((c = getopt (argc, argv, "hvsi:")) != -1) {
+		switch (c) {
+			case 'v':
+				verbose = true;
+				break;
+			case 's':
+				stack = true;
+				break;
+			case 'i':
+				filepath = optarg;
+				break;
+			case 'h':
+				printUsage(argv[0]);
+				return 0;
+			default:
+				printUsage(argv[0]);
+				return 1;
+		}
+	}
+	if (strcmp(filepath, "") == 0) {
 		printUsage(argv[0]);
 		return 1;
 	}
 
-	z80machine test;
-	boost::variant<uint8_t, uint16_t> r;
-	std::cout << (int)test.main['a'] << "\n";
-	test.main['a'] = 5;
-	r = test.main['a'];
-	r = (uint8_t)7;
-	std::cout << (int)test.main['a'] << "\n";
-
 	try {
-		std::string source = readFile(argv[1]);
-		z80prog prog = tokeniseSource(source);
+		std::string source = readFile(filepath);
 
-		for (const auto &i : prog) {
-			if (!i.label.empty()) std::cout << i.label << ": ";
-			std::cout << op_t_str.at((size_t)i.op) << ' ';
-			if (!i.operand1.empty()) std::cout << i.operand1;
-			if (!i.operand2.empty()) std::cout << ',' << i.operand2;
-			std::cout << "\n";
+		dcpu16::program prog = dcpu16::tokenise_source(source);
+		if (verbose) {
+			for (const auto &ins : prog) std::cout << ins << "\n";
 		}
+		dcpu16::machine mach;
+		mach.run(prog, stack, verbose);
+		std::cout << '\n';
+
 	} catch(const char *e) {
+		std::cerr << e << "\n";
+		return 1;
+	} catch(const std::string &e) {
 		std::cerr << e << "\n";
 		return 1;
 	}
