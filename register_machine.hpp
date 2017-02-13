@@ -134,17 +134,7 @@ program tokenise_source(const std::string &source);
 
 class machine {
 public:
-	std::array<uint16_t, (size_t)reg_t::NUM_REGS> regs; // Could be a map
-
-	std::array<uint16_t, 0x10000> mem;
-	program cur_prog;
-	bool terminate;
-	bool skip_next;
-
 	void run(const program &prog, bool stack, bool verbose);
-	uint16_t find_label(const std::string &l);
-	uint16_t get_val(const operand_t &x);
-	void set_val(const operand_t &x, uint16_t val);
 	std::string register_dump();
 
 	uint16_t set_op(uint16_t b, uint16_t a);
@@ -164,6 +154,26 @@ public:
 	uint16_t shl_op(uint16_t b, uint16_t a);
 	uint16_t adx_op(uint16_t b, uint16_t a);
 	uint16_t sbx_op(uint16_t b, uint16_t a);
+
+private:
+	std::array<uint16_t, (size_t)reg_t::NUM_REGS> regs; // Could be a map?
+
+	std::array<uint16_t, 0x10000> mem;
+	program cur_prog;
+	bool terminate;
+	bool skip_next;
+
+	uint16_t find_label(const std::string &l);
+	uint16_t get_val(const operand_t &x);
+	void set_val(const operand_t &x, uint16_t val);
+	inline uint16_t get_reg(reg_t r)
+	{
+		return this->regs.at(static_cast<size_t>(r));
+	}
+	inline void set_reg(reg_t r, uint16_t v)
+	{
+		this->regs.at(static_cast<size_t>(r)) = v;
+	}
 
 	void dat_func(operand_t x);
 	void out_func(operand_t x);

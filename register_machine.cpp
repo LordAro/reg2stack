@@ -176,7 +176,7 @@ uint16_t machine::get_val(const operand_t &x)
 			}
 		}
 		case 1: // reg
-			return this->regs.at(static_cast<size_t>(boost::get<reg_t>(x)));
+			return this->get_reg(boost::get<reg_t>(x));
 		case 2: // literal
 			return boost::get<uint16_t>(x);
 	}
@@ -198,7 +198,7 @@ void machine::set_val(const operand_t &x, uint16_t val)
 			break;
 		}
 		case 1:
-			this->regs.at(static_cast<size_t>(boost::get<reg_t>(x))) = val;
+			this->set_reg(boost::get<reg_t>(x), val);
 			break;
 		case 2:
 			break; // silently fail attempting to set a literal
@@ -210,10 +210,10 @@ void machine::run(const program &prog, bool stack = false, bool verbose = false)
 	this->cur_prog = prog;
 	this->terminate = false;
 	this->skip_next = false;
-	this->regs[(size_t)reg_t::SP] = 0xffff;
+	this->set_reg(reg_t::SP, 0xffff);
 
 
-	uint16_t &pc = this->regs[(size_t)reg_t::PC];
+	uint16_t &pc = this->regs[(size_t)reg_t::PC]; // needs ref
 	for (; !this->terminate && pc < this->cur_prog.size(); pc++) {
 		auto start = std::chrono::high_resolution_clock::now();
 
@@ -290,19 +290,19 @@ std::string string_format(const std::string& format, Args... args)
 
 std::string machine::register_dump()
 {
-	uint16_t pc = this->regs[(size_t)reg_t::PC];
-	uint16_t sp = this->regs[(size_t)reg_t::SP];
-	uint16_t ia = this->regs[(size_t)reg_t::IA];
-	uint16_t ex = this->regs[(size_t)reg_t::EX];
+	uint16_t pc = this->get_reg(reg_t::PC);
+	uint16_t sp = this->get_reg(reg_t::SP);
+	uint16_t ia = this->get_reg(reg_t::IA);
+	uint16_t ex = this->get_reg(reg_t::EX);
 
-	uint16_t a = this->regs[(size_t)reg_t::A];
-	uint16_t b = this->regs[(size_t)reg_t::B];
-	uint16_t c = this->regs[(size_t)reg_t::C];
-	uint16_t x = this->regs[(size_t)reg_t::X];
-	uint16_t y = this->regs[(size_t)reg_t::Y];
-	uint16_t z = this->regs[(size_t)reg_t::Z];
-	uint16_t i = this->regs[(size_t)reg_t::I];
-	uint16_t j = this->regs[(size_t)reg_t::J];
+	uint16_t a = this->get_reg(reg_t::A);
+	uint16_t b = this->get_reg(reg_t::B);
+	uint16_t c = this->get_reg(reg_t::C);
+	uint16_t x = this->get_reg(reg_t::X);
+	uint16_t y = this->get_reg(reg_t::Y);
+	uint16_t z = this->get_reg(reg_t::Z);
+	uint16_t i = this->get_reg(reg_t::I);
+	uint16_t j = this->get_reg(reg_t::J);
 	return string_format("PC %04x SP %04x IA %04x EX %04x\n"
 	                     "A  %04x B  %04x C  %04x\n"
 	                     "X  %04x Y  %04x Z  %04x\n"
@@ -313,6 +313,7 @@ std::string machine::register_dump()
 }
 
 
+
 uint16_t machine::set_op(uint16_t, uint16_t a)
 {
 	return a;
@@ -321,37 +322,37 @@ uint16_t machine::set_op(uint16_t, uint16_t a)
 uint16_t machine::add_op(uint16_t b, uint16_t a)
 {
 	uint32_t v = b + a;
-	this->regs[static_cast<size_t>(reg_t::EX)] = v > 0xffff ? 0x1 : 0x0;
+	this->set_reg(reg_t::EX, v > 0xffff ? 0x1 : 0x0);
 	return v;
 }
 
 uint16_t machine::sub_op(uint16_t b, uint16_t a)
 {
-	this->regs[static_cast<size_t>(reg_t::EX)] = a < b ? 0x1 : 0x0;
+	this->set_reg(reg_t::EX, a < b ? 0x1 : 0x0);
 	return b - a;
 }
 
 uint16_t machine::mul_op(uint16_t b, uint16_t a)
 {
 	uint32_t v = b * a;
-	this->regs[static_cast<size_t>(reg_t::EX)] = (v >> 16) & 0xffff;
+	this->set_reg(reg_t::EX, (v >> 16) & 0xffff);
 	return v;
 }
 
 uint16_t machine::mli_op(uint16_t b, uint16_t a)
 {
 	uint32_t v = static_cast<int16_t>(b) * static_cast<int16_t>(a);
-	this->regs[static_cast<size_t>(reg_t::EX)] = (v >> 16) & 0xffff;
+	this->set_reg(reg_t::EX, (v >> 16) & 0xffff);
 	return v;
 }
 
 uint16_t machine::div_op(uint16_t b, uint16_t a)
 {
 	if (a == 0) {
-		this->regs[static_cast<size_t>(reg_t::EX)] = 0x0;
+		this->set_reg(reg_t::EX, 0x0);
 		return 0;
 	} else {
-		this->regs[static_cast<size_t>(reg_t::EX)] = ((b << 16) / a) & 0xffff;
+		this->set_reg(reg_t::EX, ((b << 16) / a) & 0xffff);
 		return b / a;
 	}
 }
@@ -359,10 +360,10 @@ uint16_t machine::div_op(uint16_t b, uint16_t a)
 uint16_t machine::dvi_op(uint16_t b, uint16_t a)
 {
 	if (a == 0) {
-		this->regs[static_cast<size_t>(reg_t::EX)] = 0x0;
+		this->set_reg(reg_t::EX, 0x0);
 		return 0;
 	} else {
-		this->regs[static_cast<size_t>(reg_t::EX)] = ((static_cast<int16_t>(b) << 16) / static_cast<int16_t>(a)) & 0xffff;
+		this->set_reg(reg_t::EX, ((static_cast<int16_t>(b) << 16) / static_cast<int16_t>(a)) & 0xffff);
 		return static_cast<int16_t>(b) / static_cast<int16_t>(a);
 	}
 }
@@ -394,33 +395,33 @@ uint16_t machine::xor_op(uint16_t b, uint16_t a)
 
 uint16_t machine::shr_op(uint16_t b, uint16_t a)
 {
-	this->regs[static_cast<size_t>(reg_t::EX)] = (b << 16) >> a;
+	this->set_reg(reg_t::EX, (b << 16) >> a);
 	return b >> a;
 }
 
 uint16_t machine::asr_op(uint16_t b, uint16_t a)
 {
-	this->regs[static_cast<size_t>(reg_t::EX)] = (static_cast<int16_t>(b) << 16) >> a;
+	this->set_reg(reg_t::EX, (static_cast<int16_t>(b) << 16) >> a);
 	return static_cast<int16_t>(b) >> a;
 }
 
 uint16_t machine::shl_op(uint16_t b, uint16_t a)
 {
-	this->regs[static_cast<size_t>(reg_t::EX)] = (b << a) >> 16;
+	this->set_reg(reg_t::EX, (b << a) >> 16);
 	return b << a;
 }
 
 uint16_t machine::adx_op(uint16_t b, uint16_t a)
 {
-	uint16_t ex = this->regs[static_cast<size_t>(reg_t::EX)];
-	this->regs[static_cast<size_t>(reg_t::EX)] = (b + a + ex > 0xffff) ? 1 : 0;
+	uint16_t ex = this->get_reg(reg_t::EX);
+	this->set_reg(reg_t::EX, (b + a + ex > 0xffff) ? 0x1 : 0x0);
 	return b + a + ex;
 }
 
 uint16_t machine::sbx_op(uint16_t b, uint16_t a)
 {
-	uint16_t ex = this->regs[static_cast<size_t>(reg_t::EX)];
-	this->regs[static_cast<size_t>(reg_t::EX)] = (a + ex < b) ? 0xffff : 0;
+	uint16_t ex = this->get_reg(reg_t::EX);
+	this->set_reg(reg_t::EX, (a + ex < b) ? 0xffff : 0);
 	return b - a + ex;
 }
 
