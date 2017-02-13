@@ -5,7 +5,7 @@ CXXFILES=main.cpp register_machine.cpp
 OBJFILES=$(addprefix $(OBJDIR)/,$(CXXFILES:.cpp=.o))
 OBJDIR=obj
 
-TARGET=z80interp
+TARGET=reg2stack
 
 all: $(TARGET)
 
