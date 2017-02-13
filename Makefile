@@ -1,5 +1,5 @@
 CXX=clang++
-CXXFLAGS=-Wall -Wextra -pedantic -std=c++14 -g -Wno-unused-parameter
+CXXFLAGS=-Wall -Wextra -pedantic -std=c++14 -g
 
 CXXFILES=main.cpp register_machine.cpp
 OBJFILES=$(addprefix $(OBJDIR)/,$(CXXFILES:.cpp=.o))

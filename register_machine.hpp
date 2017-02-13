@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <boost/variant.hpp>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -143,77 +144,66 @@ public:
 	void run(const program &prog, bool stack, bool verbose);
 	uint16_t find_label(const std::string &l);
 	uint16_t get_val(const operand_t &x);
+	void set_val(const operand_t &x, uint16_t val);
 	std::string register_dump();
 
-	void set_func(operand_t x, operand_t y);
-	void add_func(operand_t x, operand_t y);
-	void sub_func(operand_t x, operand_t y);
-	void mul_func(operand_t x, operand_t y);
-	void mli_func(operand_t x, operand_t y);
-	void div_func(operand_t x, operand_t y);
-	void dvi_func(operand_t x, operand_t y);
-	void mod_func(operand_t x, operand_t y);
-	void mdi_func(operand_t x, operand_t y);
-	void and_func(operand_t x, operand_t y);
-	void bor_func(operand_t x, operand_t y);
-	void xor_func(operand_t x, operand_t y);
-	void shr_func(operand_t x, operand_t y);
-	void asr_func(operand_t x, operand_t y);
-	void shl_func(operand_t x, operand_t y);
-
-	void ifb_func(operand_t x, operand_t y);
-	void ifc_func(operand_t x, operand_t y);
-	void ife_func(operand_t x, operand_t y);
-	void ifn_func(operand_t x, operand_t y);
-	void ifg_func(operand_t x, operand_t y);
-	void ifa_func(operand_t x, operand_t y);
-	void ifl_func(operand_t x, operand_t y);
-	void ifu_func(operand_t x, operand_t y);
-
-	void adx_func(operand_t x, operand_t y);
-	void sbx_func(operand_t x, operand_t y);
-
-	void sti_func(operand_t x, operand_t y);
-	void std_func(operand_t x, operand_t y);
+	uint16_t set_op(uint16_t b, uint16_t a);
+	uint16_t add_op(uint16_t b, uint16_t a);
+	uint16_t sub_op(uint16_t b, uint16_t a);
+	uint16_t mul_op(uint16_t b, uint16_t a);
+	uint16_t mli_op(uint16_t b, uint16_t a);
+	uint16_t div_op(uint16_t b, uint16_t a);
+	uint16_t dvi_op(uint16_t b, uint16_t a);
+	uint16_t mod_op(uint16_t b, uint16_t a);
+	uint16_t mdi_op(uint16_t b, uint16_t a);
+	uint16_t and_op(uint16_t b, uint16_t a);
+	uint16_t bor_op(uint16_t b, uint16_t a);
+	uint16_t xor_op(uint16_t b, uint16_t a);
+	uint16_t shr_op(uint16_t b, uint16_t a);
+	uint16_t asr_op(uint16_t b, uint16_t a);
+	uint16_t shl_op(uint16_t b, uint16_t a);
+	uint16_t adx_op(uint16_t b, uint16_t a);
+	uint16_t sbx_op(uint16_t b, uint16_t a);
 
 	void dat_func(operand_t x);
 	void out_func(operand_t x);
 };
 
-using opfunc_t = std::function<void(machine*, operand_t, operand_t)>;
-using operations_map = std::array<opfunc_t, (size_t)op_t::NUM_OPS>;
+using binop_func_t = std::function<uint16_t(machine*, uint16_t, uint16_t)>;
+using binop_map = std::map<op_t, binop_func_t>;
 
-static const operations_map OPERATIONS {{
-	&machine::set_func,
-	&machine::add_func,
-	&machine::sub_func,
-	&machine::mul_func,
-	&machine::mli_func,
-	&machine::div_func,
-	&machine::dvi_func,
-	&machine::mod_func,
-	&machine::mdi_func,
-	&machine::and_func,
-	&machine::bor_func,
-	&machine::xor_func,
-    &machine::shr_func,
-	&machine::asr_func,
-	&machine::shl_func,
+static const binop_map BIN_OPS {{
+	{op_t::SET, &machine::set_op},
+	{op_t::ADD, &machine::add_op},
+	{op_t::SUB, &machine::sub_op},
+	{op_t::MUL, &machine::mul_op},
+	{op_t::MLI, &machine::mli_op},
+	{op_t::DIV, &machine::div_op},
+	{op_t::DVI, &machine::dvi_op},
+	{op_t::MOD, &machine::mod_op},
+	{op_t::MDI, &machine::mdi_op},
+	{op_t::AND, &machine::and_op},
+	{op_t::BOR, &machine::bor_op},
+	{op_t::XOR, &machine::xor_op},
+	{op_t::SHR, &machine::shr_op},
+	{op_t::ASR, &machine::asr_op},
+	{op_t::SHL, &machine::shl_op},
+	{op_t::ADX, &machine::adx_op},
+	{op_t::SBX, &machine::sbx_op},
+}};
 
-	&machine::ifb_func,
-	&machine::ifc_func,
-	&machine::ife_func,
-	&machine::ifn_func,
-	&machine::ifg_func,
-    &machine::ifa_func,
-    &machine::ifl_func,
-    &machine::ifu_func,
+using condop_func_t = std::function<bool(uint16_t, uint16_t)>;
+using condop_map = std::map<op_t, condop_func_t>;
 
-    &machine::adx_func,
-    &machine::sbx_func,
-
-    &machine::sti_func,
-    &machine::std_func,
+static const condop_map COND_OPS = {{
+	{op_t::IFB, [](uint16_t b, uint16_t a){return (b & a) != 0;}},
+	{op_t::IFC, [](uint16_t b, uint16_t a){return (b & a) == 0;}},
+	{op_t::IFE, [](uint16_t b, uint16_t a){return b == a;}},
+	{op_t::IFN, [](uint16_t b, uint16_t a){return b != a;}},
+	{op_t::IFG, [](uint16_t b, uint16_t a){return b > a;}},
+	{op_t::IFA, [](uint16_t b, uint16_t a){return static_cast<int16_t>(b) > static_cast<int16_t>(a);}},
+	{op_t::IFL, [](uint16_t b, uint16_t a){return b < a;}},
+	{op_t::IFU, [](uint16_t b, uint16_t a){return static_cast<int16_t>(b) < static_cast<int16_t>(a);}},
 }};
 
 }

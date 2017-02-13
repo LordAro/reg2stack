@@ -161,19 +161,19 @@ uint16_t machine::get_val(const operand_t &x)
 {
 	switch (x.which()) {
 		case 0: { // string
-			// much sad here. duplicates a lot of get_operand
+			// much sad.
 			std::string op = boost::get<std::string>(x);
-			if (op.find('+') != std::string::npos) { // expression. needs expanding to others
+			if (op.size() > 2 && op.front() == '[' && op.back() == ']') { // array val
+				std::string interior = op.substr(1, op.length() - 2);
+				return this->mem.at(this->get_val(get_operand(interior)));
+			} else if (op.find('+') != std::string::npos) { // expression. needs expanding to others
 				size_t pos = op.find('+');
-				return this->get_val(op.substr(0, pos)) + this->get_val(op.substr(pos + 1));
-			} else if (op.size() > 2 && op.front() == '[' && op.back() == ']') { // array val
-				return this->mem.at(this->get_val(op.substr(1, op.length() - 2)));
-			} else if (op.size() > 2 && op[0] == '0' && tolower(op[1]) == 'x' && is_hex(op.substr(2))) { // hex literal
-				return static_cast<uint16_t>(std::stoul(op.substr(2), nullptr, 16));
-			} else if (std::find(REG_T_STR.begin(), REG_T_STR.end(), op) != REG_T_STR.end()) { // reg str
-				return this->regs.at(static_cast<size_t>(find_reg(op)));
+				std::string p1 = op.substr(0, pos);
+				std::string p2 = op.substr(pos + 1);
+				return this->get_val(get_operand(p1)) + this->get_val(get_operand(p2));
+			} else {
+				return this->find_label(op);
 			}
-			return this->find_label(op);
 		}
 		case 1: // reg
 			return this->regs.at(static_cast<size_t>(boost::get<reg_t>(x)));
@@ -181,6 +181,28 @@ uint16_t machine::get_val(const operand_t &x)
 			return boost::get<uint16_t>(x);
 	}
 	throw "Could not get value??";
+}
+
+void machine::set_val(const operand_t &x, uint16_t val)
+{
+	switch (x.which()) {
+		case 0: {
+			// duplicates a lot of get_val
+			std::string op = boost::get<std::string>(x);
+			if (op.size() > 2 && op.front() == '[' && op.back() == ']') { // array val
+				std::string interior = op.substr(1, op.length() - 2);
+				this->mem.at(this->get_val(get_operand(interior))) = val;
+			} else {
+				throw "Could not find value to set?";
+			}
+			break;
+		}
+		case 1:
+			this->regs.at(static_cast<size_t>(boost::get<reg_t>(x))) = val;
+			break;
+		case 2:
+			break; // silently fail attempting to set a literal
+	}
 }
 
 void machine::run(const program &prog, bool stack = false, bool verbose = false)
@@ -200,7 +222,6 @@ void machine::run(const program &prog, bool stack = false, bool verbose = false)
 			continue;
 		}
 
-
 		const auto &ins = this->cur_prog[pc];
 		std::cerr << ins << '\n';
 		switch (ins.code) {
@@ -210,14 +231,47 @@ void machine::run(const program &prog, bool stack = false, bool verbose = false)
 			case op_t::DAT:
 				this->dat_func(ins.b);
 				break;
-			default:
-				try {
-					auto func = OPERATIONS.at((size_t)ins.code);
-					func(this, ins.b, ins.a);
-				} catch (std::bad_function_call) {
-					throw "Unrecognised instruction " + OP_T_STR.at((size_t)ins.code);
-				}
+			// Bin ops
+			case op_t::SET:
+			case op_t::ADD:
+			case op_t::SUB:
+			case op_t::MUL:
+			case op_t::MLI:
+			case op_t::DIV:
+			case op_t::DVI:
+			case op_t::MOD:
+			case op_t::MDI:
+			case op_t::AND:
+			case op_t::BOR:
+			case op_t::XOR:
+			case op_t::SHR:
+			case op_t::ASR:
+			case op_t::SHL:
+			case op_t::ADX:
+			case op_t::SBX: {
+				uint16_t b = this->get_val(ins.b);
+				uint16_t a = this->get_val(ins.a);
+				auto func = BIN_OPS.at(ins.code);
+				this->set_val(ins.b, func(this, b, a));
 				break;
+			}
+			// Cond ops
+			case op_t::IFB:
+			case op_t::IFC:
+			case op_t::IFE:
+			case op_t::IFN:
+			case op_t::IFG:
+			case op_t::IFA:
+			case op_t::IFL:
+			case op_t::IFU: {
+				uint16_t b = this->get_val(ins.b);
+				uint16_t a = this->get_val(ins.a);
+				auto func = COND_OPS.at(ins.code);
+				this->skip_next = !func(b, a);
+				break;
+			}
+			default:
+				throw "Unrecognised instruction " + OP_T_STR.at((size_t)ins.code);
 		}
 		if (verbose) std::cout << this->register_dump() << '\n';
 		std::this_thread::sleep_until(start + std::chrono::milliseconds(100)); // arbitrary
@@ -259,196 +313,117 @@ std::string machine::register_dump()
 }
 
 
-void machine::set_func(operand_t x, operand_t y)
+uint16_t machine::set_op(uint16_t, uint16_t a)
 {
-	uint16_t val = this->get_val(y);
-	switch (x.which()) {
-		case 0: {
-			std::string op = boost::get<std::string>(x);
-			if (op.size() > 2 && op.front() == '[' && op.back() == ']') {
-				this->mem.at(this->get_val(op.substr(1, op.length() - 2))) = val;
-			}
-			break;
-		}
-		case 1:
-			this->regs[(size_t)boost::get<reg_t>(x)] = val;
-			break;
+	return a;
+}
+
+uint16_t machine::add_op(uint16_t b, uint16_t a)
+{
+	uint32_t v = b + a;
+	this->regs[static_cast<size_t>(reg_t::EX)] = v > 0xffff ? 0x1 : 0x0;
+	return v;
+}
+
+uint16_t machine::sub_op(uint16_t b, uint16_t a)
+{
+	this->regs[static_cast<size_t>(reg_t::EX)] = a < b ? 0x1 : 0x0;
+	return b - a;
+}
+
+uint16_t machine::mul_op(uint16_t b, uint16_t a)
+{
+	uint32_t v = b * a;
+	this->regs[static_cast<size_t>(reg_t::EX)] = (v >> 16) & 0xffff;
+	return v;
+}
+
+uint16_t machine::mli_op(uint16_t b, uint16_t a)
+{
+	uint32_t v = static_cast<int16_t>(b) * static_cast<int16_t>(a);
+	this->regs[static_cast<size_t>(reg_t::EX)] = (v >> 16) & 0xffff;
+	return v;
+}
+
+uint16_t machine::div_op(uint16_t b, uint16_t a)
+{
+	if (a == 0) {
+		this->regs[static_cast<size_t>(reg_t::EX)] = 0x0;
+		return 0;
+	} else {
+		this->regs[static_cast<size_t>(reg_t::EX)] = ((b << 16) / a) & 0xffff;
+		return b / a;
 	}
 }
 
-void machine::add_func(operand_t x, operand_t y)
+uint16_t machine::dvi_op(uint16_t b, uint16_t a)
 {
-	uint16_t y_val = this->get_val(y);
-	switch (x.which()) {
-		case 0: {
-			std::string op = boost::get<std::string>(x);
-			if (op.size() > 2 && op.front() == '[' && op.back() == ']') {
-				this->mem.at(this->get_val(op.substr(1, op.length() - 2))) += y_val;
-			}
-			break;
-		}
-		case 1:
-			this->regs[(size_t)boost::get<reg_t>(x)] += y_val;
-			break;
+	if (a == 0) {
+		this->regs[static_cast<size_t>(reg_t::EX)] = 0x0;
+		return 0;
+	} else {
+		this->regs[static_cast<size_t>(reg_t::EX)] = ((static_cast<int16_t>(b) << 16) / static_cast<int16_t>(a)) & 0xffff;
+		return static_cast<int16_t>(b) / static_cast<int16_t>(a);
 	}
-	// TODO: Set EX
 }
 
-void machine::sub_func(operand_t x, operand_t y)
+uint16_t machine::mod_op(uint16_t b, uint16_t a)
 {
-	uint16_t y_val = this->get_val(y);
-	switch (x.which()) {
-		case 0: {
-			std::string op = boost::get<std::string>(x);
-			if (op.size() > 2 && op.front() == '[' && op.back() == ']') {
-				this->mem.at(this->get_val(op.substr(1, op.length() - 2))) -= y_val;
-			}
-			break;
-		}
-		case 1:
-			this->regs[(size_t)boost::get<reg_t>(x)] -= y_val;
-			break;
-	}
-	// TODO: Set EX
+	return a == 0 ? 0 : b % a;
 }
 
-void machine::mul_func(operand_t x, operand_t y)
+uint16_t machine::mdi_op(uint16_t b, uint16_t a)
 {
-	throw "Unimplemented instruction MUL";
+	return a == 0 ? 0 : static_cast<int16_t>(b) % static_cast<int16_t>(a);
 }
 
-void machine::mli_func(operand_t x, operand_t y)
+uint16_t machine::and_op(uint16_t b, uint16_t a)
 {
-	throw "Unimplemented instruction MLI";
+	return b & a;
 }
 
-void machine::div_func(operand_t x, operand_t y)
+uint16_t machine::bor_op(uint16_t b, uint16_t a)
 {
-	throw "Unimplemented instruction DIV";
+	return b | a;
 }
 
-void machine::dvi_func(operand_t x, operand_t y)
+uint16_t machine::xor_op(uint16_t b, uint16_t a)
 {
-	throw "Unimplemented instruction DVI";
+	return b ^ a;
 }
 
-void machine::mod_func(operand_t x, operand_t y)
+uint16_t machine::shr_op(uint16_t b, uint16_t a)
 {
-	throw "Unimplemented instruction MOD";
+	this->regs[static_cast<size_t>(reg_t::EX)] = (b << 16) >> a;
+	return b >> a;
 }
 
-void machine::mdi_func(operand_t x, operand_t y)
+uint16_t machine::asr_op(uint16_t b, uint16_t a)
 {
-	throw "Unimplemented instruction MDI";
+	this->regs[static_cast<size_t>(reg_t::EX)] = (static_cast<int16_t>(b) << 16) >> a;
+	return static_cast<int16_t>(b) >> a;
 }
 
-void machine::and_func(operand_t x, operand_t y)
+uint16_t machine::shl_op(uint16_t b, uint16_t a)
 {
-	throw "Unimplemented instruction AND";
+	this->regs[static_cast<size_t>(reg_t::EX)] = (b << a) >> 16;
+	return b << a;
 }
 
-void machine::bor_func(operand_t x, operand_t y)
+uint16_t machine::adx_op(uint16_t b, uint16_t a)
 {
-	throw "Unimplemented instruction BOR";
+	uint16_t ex = this->regs[static_cast<size_t>(reg_t::EX)];
+	this->regs[static_cast<size_t>(reg_t::EX)] = (b + a + ex > 0xffff) ? 1 : 0;
+	return b + a + ex;
 }
 
-void machine::xor_func(operand_t x, operand_t y)
+uint16_t machine::sbx_op(uint16_t b, uint16_t a)
 {
-	throw "Unimplemented instruction XOR";
+	uint16_t ex = this->regs[static_cast<size_t>(reg_t::EX)];
+	this->regs[static_cast<size_t>(reg_t::EX)] = (a + ex < b) ? 0xffff : 0;
+	return b - a + ex;
 }
 
-void machine::shr_func(operand_t x, operand_t y)
-{
-	throw "Unimplemented instruction SHR";
-}
-
-void machine::asr_func(operand_t x, operand_t y)
-{
-	throw "Unimplemented instruction ASR";
-}
-
-void machine::shl_func(operand_t x, operand_t y)
-{
-	uint16_t y_val = this->get_val(y);
-	switch (x.which()) {
-		case 0: {
-			std::string op = boost::get<std::string>(x);
-			if (op.size() > 2 && op.front() == '[' && op.back() == ']') {
-				this->mem.at(this->get_val(op.substr(1, op.length() - 2))) <<= y_val;
-			}
-			break;
-		}
-		case 1:
-			this->regs[(size_t)boost::get<reg_t>(x)] <<= y_val;
-			break;
-	}
-	//TODO: set EX to ((b<<a)>>16)&0xffff
-}
-
-
-void machine::ifb_func(operand_t x, operand_t y)
-{
-	throw "Unimplemented instruction IFB";
-}
-
-void machine::ifc_func(operand_t x, operand_t y)
-{
-	throw "Unimplemented instruction IFC";
-}
-
-void machine::ife_func(operand_t x, operand_t y)
-{
-	throw "Unimplemented instruction IFE";
-}
-
-void machine::ifn_func(operand_t x, operand_t y)
-{
-	uint16_t x_val = this->get_val(x);
-	uint16_t y_val = this->get_val(y);
-	if (!(x_val != y_val)) this->skip_next = true;
-}
-
-void machine::ifg_func(operand_t x, operand_t y)
-{
-	throw "Unimplemented instruction IFG";
-}
-
-void machine::ifa_func(operand_t x, operand_t y)
-{
-	throw "Unimplemented instruction IFA";
-}
-
-void machine::ifl_func(operand_t x, operand_t y)
-{
-	throw "Unimplemented instruction IFL";
-}
-
-void machine::ifu_func(operand_t x, operand_t y)
-{
-	throw "Unimplemented instruction IFU";
-}
-
-
-void machine::adx_func(operand_t x, operand_t y)
-{
-	throw "Unimplemented instruction ADX";
-}
-
-void machine::sbx_func(operand_t x, operand_t y)
-{
-	throw "Unimplemented instruction SBX";
-}
-
-
-void machine::sti_func(operand_t x, operand_t y)
-{
-	throw "Unimplemented instruction STI";
-}
-
-void machine::std_func(operand_t x, operand_t y)
-{
-	throw "Unimplemented instruction STD";
-}
 
 void machine::dat_func(operand_t x)
 {
