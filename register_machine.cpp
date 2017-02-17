@@ -1,18 +1,15 @@
 #include <algorithm>
+#include <boost/optional.hpp>
 #include <chrono>
 #include <iostream>
 #include <sstream>
 #include <thread>
 
 #include "register_machine.hpp"
+#include "util.hpp"
 
 namespace dcpu16 {
 
-
-bool is_hex(const std::string &s)
-{
-	return std::all_of(s.begin(), s.end(), ::isxdigit);
-}
 
 reg_t find_reg(const std::string &r)
 {
@@ -55,9 +52,6 @@ bool operator!=(const instruction &a, const instruction &b)
 	return !(a == b);
 }
 
-const instruction instruction::NONE = {op_t::NUM_OPS, 0, 0, ""};
-
-
 operand_t get_operand(const std::string &tok)
 {
 	operand_t ret;
@@ -80,26 +74,11 @@ operand_t get_operand(const std::string &tok)
 	return ret;
 }
 
-instruction tokenise_line(const std::string &line)
+boost::optional<instruction> tokenise_line(const std::string &line)
 {
 	// Parse into separate words
-	std::vector<std::string> words;
-	bool inword = false;
-	bool inquote = false;
-	for (char c : line) {
-		if (c == ';') break; // comment
-		if (c == '"') inquote = !inquote;
-		if (!inquote && (isspace(c) || c == ',')) {
-			inword = false;
-			continue;
-		} else if (!inword) {
-			words.emplace_back(); // start next word
-		}
-		words.back().push_back(c);
-		inword = true;
-	}
-
-	if (words.empty()) return instruction::NONE;
+	std::vector<std::string> words = split_words(line);
+	if (words.empty()) return boost::none;
 
 	instruction ins;
 
@@ -120,10 +99,13 @@ instruction tokenise_line(const std::string &line)
 	// All instructions have at least one operand
 	ins.b = get_operand(*it++);
 
-	if (it != words.end()) {
+	// Only DAT & OUT have 1 operand
+	if (it != words.end() && (ins.code != op_t::DAT && ins.code != op_t::OUT)) {
 		ins.a = get_operand(*it++);
-	} else if (ins.code != op_t::OUT && ins.code != op_t::DAT) {
-		throw "Incorrect number of operands for " + OP_T_STR.at((size_t)ins.code); // OUT & DAT have one operand
+	}
+
+	if (it != words.end()) {
+		throw "Incorrect number of operands for " + OP_T_STR.at((size_t)ins.code);
 	}
 	return ins;
 
@@ -141,8 +123,8 @@ program tokenise_source(const std::string &source)
 	while ((pos = source.find('\n', prev)) != std::string::npos)
 	{
 		std::string line = source.substr(prev, pos - prev);
-		instruction ins = tokenise_line(line);
-		if (ins != instruction::NONE) prog.push_back(ins);
+		boost::optional<instruction> ins = tokenise_line(line);
+		if (ins) prog.push_back(*ins);
 		prev = pos + 1;
 	}
 	return prog;
@@ -205,7 +187,7 @@ void machine::set_val(const operand_t &x, uint16_t val)
 	}
 }
 
-void machine::run(const program &prog, bool stack = false, bool verbose = false)
+void machine::run(const program &prog, bool verbose = false)
 {
 	this->cur_prog = prog;
 	this->terminate = false;
@@ -276,16 +258,6 @@ void machine::run(const program &prog, bool stack = false, bool verbose = false)
 		if (verbose) std::cout << this->register_dump() << '\n';
 		std::this_thread::sleep_until(start + std::chrono::milliseconds(100)); // arbitrary
 	}
-}
-
-
-template<typename ... Args>
-std::string string_format(const std::string& format, Args... args)
-{
-	size_t size = std::snprintf(nullptr, 0, format.c_str(), args...) + 1; // Extra space for '\0'
-	std::unique_ptr<char[]> buf(new char[size]);
-	std::snprintf(buf.get(), size, format.c_str(), args...);
-	return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 }
 
 std::string machine::register_dump()

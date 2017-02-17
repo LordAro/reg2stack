@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include "register_machine.hpp"
+#include "stack_machine.hpp"
 
 std::string readFile(const std::string &filename)
 {
@@ -64,12 +65,21 @@ int main(int argc, char **argv)
 	try {
 		std::string source = readFile(filepath);
 
-		dcpu16::program prog = dcpu16::tokenise_source(source);
-		if (verbose) {
-			for (const auto &ins : prog) std::cout << ins << "\n";
+		if (!stack) {
+			dcpu16::program prog = dcpu16::tokenise_source(source);
+			if (verbose) {
+				for (const auto &ins : prog) std::cout << ins << "\n";
+			}
+			dcpu16::machine mach;
+			mach.run(prog, verbose);
+		} else {
+			j5::program prog = j5::tokenise_source(source);
+			if (verbose) {
+				for (const auto &ins : prog) std::cout << ins << "\n";
+			}
+			j5::machine mach;
+			mach.run(prog, verbose);
 		}
-		dcpu16::machine mach;
-		mach.run(prog, stack, verbose);
 		std::cout << '\n';
 
 	} catch(const char *e) {

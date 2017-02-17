@@ -2,7 +2,6 @@
 #define REGISTER_MACHINE_HPP
 
 #include <array>
-#include <cstdint>
 #include <boost/variant.hpp>
 #include <map>
 #include <string>
@@ -10,9 +9,7 @@
 
 namespace dcpu16 {
 
-bool is_hex(const std::string &s);
-
-enum class op_t : size_t {
+enum class op_t {
 	SET,
 	ADD,
 	SUB,
@@ -120,8 +117,6 @@ struct instruction {
 	op_t code;
 	operand_t b, a;
 	std::string label;
-
-	static const instruction NONE;
 };
 
 std::ostream& operator<<(std::ostream& os, const instruction& ins);
@@ -134,7 +129,7 @@ program tokenise_source(const std::string &source);
 
 class machine {
 public:
-	void run(const program &prog, bool stack, bool verbose);
+	void run(const program &prog, bool verbose);
 	std::string register_dump();
 
 	uint16_t set_op(uint16_t b, uint16_t a);

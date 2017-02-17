@@ -1,0 +1,24 @@
+; Initial setup
+SET 42h
+SET 2002h
+SET 2Fh
+SET 2007h
+STORE
+STORE
+
+
+SET 2000h   ; (2000h)
+DUP         ; (2000h, 2000h)
+DUP         ; (2000h, 2000h, 2000h)
+SET 02h     ; (  02h, 2000h, 2000h, 2000h)
+ADD         ; (2002h, 2000h, 2000h)
+LOAD        ; ( x[2], 2000h, 2000h)
+SWAP        ; (2000h,  x[2], 2000h)
+SET 07h     ; (  07h, 2000h,  x[2], 2000h)
+ADD         ; (2007h,  x[2], 2000h)
+LOAD        ; ( x[7],  x[2], 2000h)
+SUB         ; (  res, 2000h)
+SWAP        ; (2000h,   res)
+SET 03h     ; (  03h, 2000h, res)
+ADD         ; (2003h,   res)
+STORE       ; ()
