@@ -126,7 +126,7 @@ std::string machine::register_dump()
 
 
 /* static */ const machine::op_map machine::OPERATIONS {{
-	{op_t::NOP,    [](machine* m){(void)m;}},
+	{op_t::NOP,    [](machine*){}},
 	{op_t::LOAD,   &machine::load_func},
 	{op_t::STORE,  &machine::store_func},
 	{op_t::DUP,    [](machine* m){m->stack.push(m->stack.top());}},

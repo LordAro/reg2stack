@@ -285,6 +285,37 @@ std::string machine::register_dump()
 }
 
 
+/* static */ const machine::binop_map machine::BIN_OPS {{
+	{op_t::SET, &machine::set_op},
+	{op_t::ADD, &machine::add_op},
+	{op_t::SUB, &machine::sub_op},
+	{op_t::MUL, &machine::mul_op},
+	{op_t::MLI, &machine::mli_op},
+	{op_t::DIV, &machine::div_op},
+	{op_t::DVI, &machine::dvi_op},
+	{op_t::MOD, &machine::mod_op},
+	{op_t::MDI, &machine::mdi_op},
+	{op_t::AND, &machine::and_op},
+	{op_t::BOR, &machine::bor_op},
+	{op_t::XOR, &machine::xor_op},
+	{op_t::SHR, &machine::shr_op},
+	{op_t::ASR, &machine::asr_op},
+	{op_t::SHL, &machine::shl_op},
+	{op_t::ADX, &machine::adx_op},
+	{op_t::SBX, &machine::sbx_op},
+}};
+
+/* static */ const machine::condop_map machine::COND_OPS = {{
+	{op_t::IFB, [](uint16_t b, uint16_t a){return (b & a) != 0;}},
+	{op_t::IFC, [](uint16_t b, uint16_t a){return (b & a) == 0;}},
+	{op_t::IFE, [](uint16_t b, uint16_t a){return b == a;}},
+	{op_t::IFN, [](uint16_t b, uint16_t a){return b != a;}},
+	{op_t::IFG, [](uint16_t b, uint16_t a){return b > a;}},
+	{op_t::IFA, [](uint16_t b, uint16_t a){return static_cast<int16_t>(b) > static_cast<int16_t>(a);}},
+	{op_t::IFL, [](uint16_t b, uint16_t a){return b < a;}},
+	{op_t::IFU, [](uint16_t b, uint16_t a){return static_cast<int16_t>(b) < static_cast<int16_t>(a);}},
+}};
+
 
 uint16_t machine::set_op(uint16_t, uint16_t a)
 {
