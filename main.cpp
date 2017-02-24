@@ -28,29 +28,38 @@ void printUsage(const char *arg0)
 		"\n"
 		"-v    -  Verbose output\n"
 		"-c    -  Convert register code\n"
-		"-s    -  Stack output\n"
+		"-s    -  Stack (J5) interpreter\n"
+		"-r    -  Register (DCPU-16) interpreter\n"
 		"-h    -  This help text\n"
 		"file  -  ASM source file to run\n";
 	printf(USAGE, arg0, arg0);
 }
 
+enum class mode {
+	REGISTER,
+	STACK,
+	CONVERT,
+};
+
 int main(int argc, char **argv)
 {
 	bool verbose = false;
-	bool stack = false;
-	bool convert = false;
+	mode m;
 	const char *filepath = "";
 	int c = 0;
-	while ((c = getopt (argc, argv, "hvsci:")) != -1) {
+	while ((c = getopt(argc, argv, "hvcsri:")) != -1) {
 		switch (c) {
 			case 'v':
 				verbose = true;
 				break;
-			case 's':
-				stack = true;
-				break;
 			case 'c':
-				convert = true;
+				m = mode::CONVERT;
+				break;
+			case 's':
+				m = mode::STACK;
+				break;
+			case 'r':
+				m = mode::REGISTER;
 				break;
 			case 'i':
 				filepath = optarg;
@@ -71,26 +80,35 @@ int main(int argc, char **argv)
 	try {
 		std::string source = readFile(filepath);
 
-		if (!stack) {
-			dcpu16::program prog = dcpu16::tokenise_source(source);
-			if (verbose) {
-				for (const auto &ins : prog) std::cout << ins << "\n";
-			}
-
-			if (convert) {
-				auto stack_prog = reg2stack(prog);
-				for (const auto &i : stack_prog) std::cout << i << '\n';
-			} else {
+		switch (m) {
+			case mode::REGISTER: {
+				dcpu16::program prog = dcpu16::tokenise_source(source);
+				if (verbose) {
+					for (const auto &ins : prog) std::cout << ins << "\n";
+				}
 				dcpu16::machine mach;
 				mach.run(prog, verbose);
+
+				break;
 			}
-		} else {
-			j5::program prog = j5::tokenise_source(source);
-			if (verbose) {
-				for (const auto &ins : prog) std::cout << ins << "\n";
+			case mode::STACK: {
+				j5::program prog = j5::tokenise_source(source);
+				if (verbose) {
+					for (const auto &ins : prog) std::cout << ins << "\n";
+				}
+				j5::machine mach;
+				mach.run(prog, verbose);
+				break;
 			}
-			j5::machine mach;
-			mach.run(prog, verbose);
+			case mode::CONVERT: {
+				dcpu16::program prog = dcpu16::tokenise_source(source);
+				if (verbose) {
+					for (const auto &ins : prog) std::cout << ins << "\n";
+				}
+				auto stack_prog = reg2stack(prog);
+				for (const auto &i : stack_prog) std::cout << i << '\n';
+				break;
+			}
 		}
 		std::cout << '\n';
 
