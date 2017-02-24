@@ -1,0 +1,8 @@
+SET A, 42
+OUT A
+
+SET A, B
+OUT A
+
+SET A, [B]
+OUT A

@@ -123,6 +123,8 @@ std::ostream& operator<<(std::ostream& os, const instruction& ins);
 bool operator==(const instruction &a, const instruction &b);
 bool operator!=(const instruction &a, const instruction &b);
 
+operand_t get_operand(const std::string &tok);
+
 using program = std::vector<instruction>;
 
 program tokenise_source(const std::string &source);

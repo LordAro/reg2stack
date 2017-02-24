@@ -5,6 +5,7 @@
 
 #include "register_machine.hpp"
 #include "stack_machine.hpp"
+#include "register_convert.hpp"
 
 std::string readFile(const std::string &filename)
 {
@@ -26,6 +27,7 @@ void printUsage(const char *arg0)
 		"Usage: %s [-v] [-s] -i file\n"
 		"\n"
 		"-v    -  Verbose output\n"
+		"-c    -  Convert register code\n"
 		"-s    -  Stack output\n"
 		"-h    -  This help text\n"
 		"file  -  ASM source file to run\n";
@@ -36,15 +38,19 @@ int main(int argc, char **argv)
 {
 	bool verbose = false;
 	bool stack = false;
+	bool convert = false;
 	const char *filepath = "";
 	int c = 0;
-	while ((c = getopt (argc, argv, "hvsi:")) != -1) {
+	while ((c = getopt (argc, argv, "hvsci:")) != -1) {
 		switch (c) {
 			case 'v':
 				verbose = true;
 				break;
 			case 's':
 				stack = true;
+				break;
+			case 'c':
+				convert = true;
 				break;
 			case 'i':
 				filepath = optarg;
@@ -70,8 +76,14 @@ int main(int argc, char **argv)
 			if (verbose) {
 				for (const auto &ins : prog) std::cout << ins << "\n";
 			}
-			dcpu16::machine mach;
-			mach.run(prog, verbose);
+
+			if (convert) {
+				auto stack_prog = reg2stack(prog);
+				for (const auto &i : stack_prog) std::cout << i << '\n';
+			} else {
+				dcpu16::machine mach;
+				mach.run(prog, verbose);
+			}
 		} else {
 			j5::program prog = j5::tokenise_source(source);
 			if (verbose) {

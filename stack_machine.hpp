@@ -12,6 +12,7 @@ namespace j5 {
 enum class op_t {
 	NOP,
 	SET,
+	DROP,
 	LOAD,
 	STORE,
 	DUP,
@@ -28,9 +29,14 @@ enum class op_t {
 	NOT,
 	SHR,
 	SHL,
+
 	TEQ,
 	TGT,
-	BRZERO,
+	BRZERO, //TODO: find other branches/tests
+	// TODO: COPYn ?
+	// TODO: TUCKn ?
+	// TODO: RSDn/RSUn - rotate n stack items
+
 	STOP,
 	OUT,
 	NUM_OPS,
@@ -39,6 +45,7 @@ enum class op_t {
 static const std::array<std::string, (size_t)op_t::NUM_OPS> OP_T_STR{{
 	"NOP",
 	"SET",
+	"DROP",
 	"LOAD",
 	"STORE",
 	"DUP",
@@ -71,6 +78,11 @@ struct instruction {
 };
 
 std::ostream& operator<<(std::ostream& os, const instruction& ins);
+
+inline instruction make_instruction(op_t code, operand_t op = boost::none, std::string label = "")
+{
+	return {label, code, op};
+}
 
 using program = std::vector<instruction>;
 

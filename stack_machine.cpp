@@ -13,7 +13,7 @@ std::ostream& operator<<(std::ostream& os, const instruction& ins)
 {
 	if (!ins.label.empty()) os << ins.label << ": ";
 	os << OP_T_STR.at((size_t)ins.code);
-	if (ins.op != boost::none) os << " '" << *ins.op << "'";
+	if (ins.op != boost::none) os << ' ' << *ins.op;
 	return os;
 }
 
@@ -127,6 +127,7 @@ std::string machine::register_dump()
 
 /* static */ const machine::op_map machine::OPERATIONS {{
 	{op_t::NOP,    [](machine*){}},
+	{op_t::DROP,   [](machine* m){m->stack.pop();}},
 	{op_t::LOAD,   &machine::load_func},
 	{op_t::STORE,  &machine::store_func},
 	{op_t::DUP,    [](machine* m){m->stack.push(m->stack.top());}},
