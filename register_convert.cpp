@@ -13,10 +13,9 @@ uint16_t reg2memaddr(dcpu16::reg_t r)
 }
 
 /*
- * Pushes the value of a register operand onto the stack (no other sideeffects)
- * What happens next is anyone's guess :)
+ * Pushes the *address* of a register operand onto the stack (no other sideeffects)
  */
-prog_snippet operand_on_stack(dcpu16::operand_t x)
+prog_snippet operand_addr_on_stack(dcpu16::operand_t x)
 {
 	prog_snippet ret;
 	switch (x.which()) {
@@ -46,13 +45,11 @@ prog_snippet operand_on_stack(dcpu16::operand_t x)
 					break;
 				}
 			}
-			ret.emplace_back(j5::make_instruction(j5::op_t::LOAD));
 			break;
 		}
 		case 1: {
 			uint16_t val = reg2memaddr(boost::get<dcpu16::reg_t>(x));
 			ret.emplace_back(j5::make_instruction(j5::op_t::SET, val));
-			ret.emplace_back(j5::make_instruction(j5::op_t::LOAD));
 			break;
 		}
 		case 2:
@@ -63,9 +60,22 @@ prog_snippet operand_on_stack(dcpu16::operand_t x)
 	return ret;
 }
 
+/*
+ * Pushes the value of a register operand onto the stack (no other sideeffects)
+ * What happens next is anyone's guess :)
+ */
+prog_snippet operand_val_on_stack(dcpu16::operand_t x)
+{
+	prog_snippet ret = operand_addr_on_stack(x);
+	if (x.which() == 0 || x.which() == 1) {
+		ret.emplace_back(j5::make_instruction(j5::op_t::LOAD));
+	}
+	return ret;
+}
+
 prog_snippet set_snippet(dcpu16::operand_t b, dcpu16::operand_t a)
 {
-	prog_snippet ret = operand_on_stack(a);
+	prog_snippet ret = operand_val_on_stack(a);
 	switch (b.which()) {
 		case 0: // string
 			throw "Setting to string NYI";
@@ -83,9 +93,28 @@ prog_snippet set_snippet(dcpu16::operand_t b, dcpu16::operand_t a)
 
 prog_snippet out_snippet(dcpu16::operand_t b, dcpu16::operand_t)
 {
-	prog_snippet ret = operand_on_stack(b);
+	prog_snippet ret = operand_val_on_stack(b);
 	ret.emplace_back(j5::make_instruction(j5::op_t::OUT));
 	ret.emplace_back(j5::make_instruction(j5::op_t::DROP));
+	return ret;
+}
+
+// TODO EX register
+prog_snippet add_snippet(dcpu16::operand_t b, dcpu16::operand_t a)
+{
+	if (b.which() == 2) {
+		return {}; // nop
+	}
+	prog_snippet b_snip = operand_val_on_stack(b);
+	prog_snippet a_snip = operand_val_on_stack(a);
+	prog_snippet ret;
+	ret.insert(ret.end(), b_snip.begin(), b_snip.end());
+	ret.insert(ret.end(), a_snip.begin(), a_snip.end());
+	ret.emplace_back(j5::make_instruction(j5::op_t::ADD));
+
+	prog_snippet addr_snip = operand_addr_on_stack(b);
+	ret.insert(ret.end(), addr_snip.begin(), addr_snip.end());
+	ret.emplace_back(j5::make_instruction(j5::op_t::STORE));
 	return ret;
 }
 
@@ -99,6 +128,7 @@ prog_snippet instruction_convert(const dcpu16::instruction &r)
 {
 	static const std::map<dcpu16::op_t, std::function<prog_snippet(dcpu16::operand_t, dcpu16::operand_t)>> conv_map {
 		{dcpu16::op_t::SET, &set_snippet},
+		{dcpu16::op_t::ADD, &add_snippet},
 		{dcpu16::op_t::OUT, &out_snippet},
 	};
 	auto keyval = conv_map.find(r.code);

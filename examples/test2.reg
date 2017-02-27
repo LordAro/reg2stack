@@ -1,8 +1,14 @@
-SET A, 42
+SET A, [B]
 OUT A
 
 SET A, B
 OUT A
 
-SET A, [B]
+SET A, 42
+OUT A
+
+SET B, 59
+OUT B
+
+ADD A, B
 OUT A
