@@ -137,38 +137,6 @@ prog_snippet instruction_convert(const dcpu16::instruction &r)
 	} else {
 		throw "Unimplemented instruction" + dcpu16::OP_T_STR.at((size_t)r.code);
 	}
-	switch (r.code) {
-		case dcpu16::op_t::SET:
-		case dcpu16::op_t::ADD:
-		case dcpu16::op_t::SUB:
-		case dcpu16::op_t::MUL:
-		case dcpu16::op_t::MLI:
-		case dcpu16::op_t::DIV:
-		case dcpu16::op_t::DVI:
-		case dcpu16::op_t::MOD:
-		case dcpu16::op_t::MDI:
-		case dcpu16::op_t::AND:
-		case dcpu16::op_t::BOR:
-		case dcpu16::op_t::XOR:
-		case dcpu16::op_t::SHR:
-		case dcpu16::op_t::ASR:
-		case dcpu16::op_t::SHL:
-
-		case dcpu16::op_t::IFB:
-		case dcpu16::op_t::IFC:
-		case dcpu16::op_t::IFE:
-		case dcpu16::op_t::IFN:
-		case dcpu16::op_t::IFG:
-		case dcpu16::op_t::IFA:
-		case dcpu16::op_t::IFL:
-		case dcpu16::op_t::IFU:
-		case dcpu16::op_t::ADX:
-		case dcpu16::op_t::SBX:
-		case dcpu16::op_t::DAT:
-		case dcpu16::op_t::OUT:
-		default:
-			break;
-	}
 }
 
 j5::program reg2stack(dcpu16::program p)
