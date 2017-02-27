@@ -10,63 +10,87 @@
 namespace j5 {
 
 enum class op_t {
-	NOP,
-	SET,
-	DROP,
-	LOAD,
-	STORE,
-	DUP,
-	SWAP,
-	INC,
-	DEC,
 	ADD,
 	SUB,
-	ADDC,
-	SUBC,
+	INC,
+	DEC,
 	AND,
 	OR,
-	XOR,
 	NOT,
+	XOR,
 	SHR,
 	SHL,
 
-	TEQ,
 	TGT,
-	BRZERO, //TODO: find other branches/tests
-	// TODO: COPYn ?
-	// TODO: TUCKn ?
-	// TODO: RSDn/RSUn - rotate n stack items
+	TLT,
+	TEQ,
+	TSZ,
 
+	SSET,
+	SET,
+	LOAD,
+	STORE,
+	BRANCH,
+	BRZERO,
+	IBRANCH,
+	CALL,
+	RETURN,
 	STOP,
 	OUT,
+
+	DROP,
+	DUP,
+	SWAP,
+	RSD3,
+	RSU3,
+	TUCK2,
+	TUCK3,
+	COPY3,
+	PUSH,
+	POP,
+
 	NUM_OPS,
 };
 
 static const std::array<std::string, (size_t)op_t::NUM_OPS> OP_T_STR{{
-	"NOP",
-	"SET",
-	"DROP",
-	"LOAD",
-	"STORE",
-	"DUP",
-	"SWAP",
-	"INC",
-	"DEC",
 	"ADD",
 	"SUB",
-	"ADDC",
-	"SUBC",
+	"INC",
+	"DEC",
 	"AND",
 	"OR",
-	"XOR",
 	"NOT",
+	"XOR",
 	"SHR",
 	"SHL",
-	"TEQ",
+
 	"TGT",
-	"BrZero",
+	"TLT",
+	"TEQ",
+	"TSZ",
+
+	"SSET",
+	"SET",
+	"LOAD",
+	"STORE",
+	"BRANCH",
+	"BRZERO",
+	"IBRANCH",
+	"CALL",
+	"RETURN",
 	"STOP",
 	"OUT",
+
+	"DROP",
+	"DUP",
+	"SWAP",
+	"RSD3",
+	"RSU3",
+	"TUCK2",
+	"TUCK3",
+	"COPY3",
+	"PUSH",
+	"POP",
 }};
 
 using operand_t = boost::optional<uint16_t>;
@@ -95,9 +119,22 @@ public:
 
 private:
 	uint16_t pc;
-	bool terminate;
 	std::stack<uint16_t> stack;
 	std::array<uint16_t, 0x10000> mem;
+
+	// Registers. In a stack machine. Go figure.
+	uint8_t flags;
+	uint8_t lbr;
+	uint8_t gbr;
+	uint8_t vba;
+	enum class flagbit {
+		CARRY = 0,
+		ZERO = 1,
+		IMODE = 6,
+		INTER = 7,
+	};
+
+	bool terminate;
 	program cur_prog;
 
 	using opfunc_t = std::function<void(machine*)>;
@@ -106,6 +143,7 @@ private:
 	static const op_map OPERATIONS;
 
 	void binop_func(std::function<uint16_t(uint16_t, uint16_t)> op);
+	void comp_func(std::function<bool(uint16_t, uint16_t)> op);
 
 	void set_func(uint16_t v);
 	void load_func();

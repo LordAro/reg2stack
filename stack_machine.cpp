@@ -126,29 +126,40 @@ std::string machine::register_dump()
 
 
 /* static */ const machine::op_map machine::OPERATIONS {{
-	{op_t::NOP,    [](machine*){}},
-	{op_t::DROP,   [](machine* m){m->stack.pop();}},
-	{op_t::LOAD,   &machine::load_func},
-	{op_t::STORE,  &machine::store_func},
-	{op_t::DUP,    [](machine* m){m->stack.push(m->stack.top());}},
-	{op_t::SWAP,   &machine::swap_func},
-	{op_t::INC,    [](machine *m){m->stack.top()++;}},
-	{op_t::DEC,    [](machine *m){m->stack.top()--;}},
-	{op_t::ADD,    [](machine *m){m->binop_func(std::plus<>());}},
-	{op_t::SUB,    [](machine *m){m->binop_func(std::minus<>());}},
-//	{op_t::ADDC,   [](machine *m){m->terminate = true;}},
-//	{op_t::SUBC,   [](machine *m){m->terminate = true;}},
-	{op_t::AND,    [](machine *m){m->binop_func(std::bit_and<>());}},
-	{op_t::OR,     [](machine *m){m->binop_func(std::bit_or<>());}},
-	{op_t::XOR,    [](machine *m){m->binop_func(std::bit_xor<>());}},
-	{op_t::NOT,    [](machine *m){m->stack.top() = ~m->stack.top();}},
-	{op_t::SHR,    [](machine *m){m->binop_func([](uint16_t a, uint16_t b){return a >> b;});}},
-	{op_t::SHL,    [](machine *m){m->binop_func([](uint16_t a, uint16_t b){return a << b;});}},
-	{op_t::TEQ,    [](machine *m){m->terminate = true;}},
-	{op_t::TGT,    [](machine *m){m->terminate = true;}},
-	{op_t::BRZERO, [](machine *m){m->terminate = true;}},
-	{op_t::STOP,   [](machine *m){m->terminate = true;}},
-	{op_t::OUT,    [](machine *m){std::cout << m->stack.top() << '\n';}},
+	{op_t::ADD, [](machine *m){m->binop_func(std::plus<>());}},
+	{op_t::SUB, [](machine *m){m->binop_func(std::minus<>());}},
+	{op_t::INC, [](machine *m){m->stack.top()++;}},
+	{op_t::DEC, [](machine *m){m->stack.top()--;}},
+	{op_t::AND, [](machine *m){m->binop_func(std::bit_and<>());}},
+	{op_t::OR,  [](machine *m){m->binop_func(std::bit_or<>());}},
+	{op_t::NOT, [](machine *m){m->stack.top() = ~m->stack.top();}},
+	{op_t::XOR, [](machine *m){m->binop_func(std::bit_xor<>());}},
+	{op_t::SHR, [](machine *m){m->binop_func([](uint16_t a, uint16_t b){return a >> b;});}},
+	{op_t::SHL, [](machine *m){m->binop_func([](uint16_t a, uint16_t b){return a << b;});}},
+
+	{op_t::TGT, [](machine *m){m->comp_func(std::greater<>());}},
+	{op_t::TLT, [](machine *m){m->comp_func(std::less<>());}},
+	{op_t::TEQ, [](machine *m){m->comp_func(std::equal_to<>());}},
+	{op_t::TSZ, [](machine *m){m->comp_func([](uint16_t t, uint16_t){return t == 0;});}},
+
+	// SET special, SSET unimplemented
+	{op_t::LOAD,    &machine::load_func},
+	{op_t::STORE,   &machine::store_func},
+	// BRANCH, BRZERO special, IBRANCH unimplemented
+	{op_t::CALL,    [](machine *m){m->terminate = true;}},
+	{op_t::RETURN,  [](machine *m){m->terminate = true;}},
+	{op_t::STOP,    [](machine *m){m->terminate = true;}},
+	{op_t::OUT,     [](machine *m){std::cout << m->stack.top() << '\n';}},
+
+	{op_t::DROP,  [](machine* m){m->stack.pop();}},
+	{op_t::DUP,   [](machine* m){m->stack.push(m->stack.top());}},
+	{op_t::SWAP,  &machine::swap_func},
+	{op_t::RSD3,  [](machine *m){m->terminate = true;}},
+	{op_t::RSU3,  [](machine *m){m->terminate = true;}},
+	{op_t::TUCK2, [](machine *m){m->terminate = true;}},
+	{op_t::TUCK3, [](machine *m){m->terminate = true;}},
+	{op_t::COPY3, [](machine *m){m->terminate = true;}},
+	// PUSH,POP special
 }};
 
 void machine::set_func(uint16_t v)
@@ -189,6 +200,17 @@ void machine::binop_func(std::function<uint16_t(uint16_t, uint16_t)> op)
 	uint16_t b = this->stack.top();
 	this->stack.pop();
 	this->stack.push(op(b, a));
+}
+
+void machine::comp_func(std::function<bool(uint16_t, uint16_t)> op)
+{
+	uint16_t top = this->stack.top();
+	this->stack.pop();
+	uint16_t next = this->stack.top(); // no peeking..
+	this->stack.push(top); // restore
+	// sets nth bit (zero) to result of op
+	this->flags ^= (-static_cast<uint8_t>(op(top, next)) ^ this->flags)
+		& (1 << static_cast<uint8_t>(machine::flagbit::ZERO));
 }
 
 }
