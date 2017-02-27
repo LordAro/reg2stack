@@ -95,8 +95,16 @@ void machine::run(const program &prog, bool verbose)
 		const auto &ins = this->cur_prog[pc];
 		std::cerr << ins << '\n';
 		switch (ins.code) {
-			case op_t::SET:
+			case op_t::SET: // TODO: SSET & PUSH
 				this->set_func(*ins.op);
+				break;
+			case op_t::BRANCH:
+				this->pc += *ins.op - 1; // for postincrement
+				break;
+			case op_t::BRZERO:
+				if ((this->flags >> static_cast<uint8_t>(machine::flagbit::ZERO)) & 1) {
+					this->pc += *ins.op - 1; // for postincrement
+				}
 				break;
 			default:
 				try {
