@@ -442,13 +442,13 @@ void machine::out_func(operand_t x)
 	switch (x.which()) {
 		case 0:
 			if (isalpha(boost::get<std::string>(x)[0])) { // points to a label
-				std::cout << this->cur_prog.at(addr).b;
+				std::cout << this->cur_prog.at(addr).b << '\n';
 			} else {
-				std::cout << std::to_string(addr);
+				std::cout << std::to_string(addr) << '\n';
 			}
 			break;
 		case 1:
-			std::cout << std::to_string(addr);
+			std::cout << std::to_string(addr) << '\n';
 			break;
 		case 2:
 			std::cout << this->cur_prog.at(addr);
