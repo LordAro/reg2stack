@@ -27,6 +27,7 @@ void printUsage(const char *arg0)
 		"Usage: %s [-v] [-s] -i file\n"
 		"\n"
 		"-v    -  Verbose output\n"
+		"-f    -  Fast speed\n"
 		"-c    -  Convert register code\n"
 		"-s    -  Stack (J5) interpreter\n"
 		"-r    -  Register (DCPU-16) interpreter\n"
@@ -44,10 +45,11 @@ enum class mode {
 int main(int argc, char **argv)
 {
 	bool verbose = false;
+	bool speedlimit = true;
 	mode m;
 	const char *filepath = "";
 	int c = 0;
-	while ((c = getopt(argc, argv, "hvcsri:")) != -1) {
+	while ((c = getopt(argc, argv, "hfvcsri:")) != -1) {
 		switch (c) {
 			case 'v':
 				verbose = true;
@@ -64,6 +66,8 @@ int main(int argc, char **argv)
 			case 'i':
 				filepath = optarg;
 				break;
+			case 'f':
+				speedlimit = false;
 			case 'h':
 				printUsage(argv[0]);
 				return 0;
@@ -87,7 +91,7 @@ int main(int argc, char **argv)
 					for (const auto &ins : prog) std::cout << ins << "\n";
 				}
 				dcpu16::machine mach;
-				mach.run(prog, verbose);
+				mach.run(prog, verbose, speedlimit);
 
 				break;
 			}
@@ -97,7 +101,7 @@ int main(int argc, char **argv)
 					for (const auto &ins : prog) std::cout << ins << "\n";
 				}
 				j5::machine mach;
-				mach.run(prog, verbose);
+				mach.run(prog, verbose, speedlimit);
 				break;
 			}
 			case mode::CONVERT: {

@@ -187,7 +187,7 @@ void machine::set_val(const operand_t &x, uint16_t val)
 	}
 }
 
-void machine::run(const program &prog, bool verbose = false)
+void machine::run(const program &prog, bool verbose, bool speedlimit)
 {
 	this->cur_prog = prog;
 	this->terminate = false;
@@ -256,7 +256,9 @@ void machine::run(const program &prog, bool verbose = false)
 				throw "Unrecognised instruction " + OP_T_STR.at((size_t)ins.code);
 		}
 		if (verbose) std::cout << this->register_dump() << '\n';
-		std::this_thread::sleep_until(start + std::chrono::milliseconds(100)); // arbitrary
+		if (speedlimit) {
+			std::this_thread::sleep_until(start + std::chrono::milliseconds(100)); // arbitrary
+		}
 	}
 }
 

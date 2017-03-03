@@ -84,7 +84,7 @@ program tokenise_source(const std::string &source)
 	return prog;
 }
 
-void machine::run(const program &prog, bool verbose)
+void machine::run(const program &prog, bool verbose, bool speedlimit)
 {
 	this->cur_prog = prog;
 	this->terminate = false;
@@ -115,7 +115,9 @@ void machine::run(const program &prog, bool verbose)
 				}
 		}
 		if (verbose) std::cout << this->register_dump() << '\n';
-		std::this_thread::sleep_until(start + std::chrono::milliseconds(100)); // arbitrary
+		if (speedlimit) {
+			std::this_thread::sleep_until(start + std::chrono::milliseconds(100)); // arbitrary
+		}
 	}
 }
 

@@ -9,7 +9,7 @@ STACK_PROGS = []
 CONVERSIONS = ['test1', 'simple']
 
 def get_prog(name, typerun, conv=False):
-    args = ['./reg2stack']
+    args = ['./reg2stack', '-f']
     if typerun not in ['r', 's', 'c']:
         raise 'Unknown run type'
     args.append('-' + typerun)
