@@ -118,6 +118,24 @@ prog_snippet add_snippet(dcpu16::operand_t b, dcpu16::operand_t a)
 	return ret;
 }
 
+prog_snippet sub_snippet(dcpu16::operand_t b, dcpu16::operand_t a)
+{
+	if (b.which() == 2) {
+		return {}; // nop
+	}
+	prog_snippet b_snip = operand_val_on_stack(b);
+	prog_snippet a_snip = operand_val_on_stack(a);
+	prog_snippet ret;
+	ret.insert(ret.end(), b_snip.begin(), b_snip.end());
+	ret.insert(ret.end(), a_snip.begin(), a_snip.end());
+	ret.emplace_back(j5::make_instruction(j5::op_t::SUB));
+
+	prog_snippet addr_snip = operand_addr_on_stack(b);
+	ret.insert(ret.end(), addr_snip.begin(), addr_snip.end());
+	ret.emplace_back(j5::make_instruction(j5::op_t::STORE));
+	return ret;
+}
+
 /**
  * Whole point of this program. :)
  * Takes a register instruction and converts to a stack instruction.
@@ -129,13 +147,14 @@ prog_snippet instruction_convert(const dcpu16::instruction &r)
 	static const std::map<dcpu16::op_t, std::function<prog_snippet(dcpu16::operand_t, dcpu16::operand_t)>> conv_map {
 		{dcpu16::op_t::SET, &set_snippet},
 		{dcpu16::op_t::ADD, &add_snippet},
+		{dcpu16::op_t::SUB, &sub_snippet},
 		{dcpu16::op_t::OUT, &out_snippet},
 	};
 	auto keyval = conv_map.find(r.code);
 	if (keyval != conv_map.end()) {
 		return keyval->second(r.b, r.a);
 	} else {
-		throw "Unimplemented instruction" + dcpu16::OP_T_STR.at((size_t)r.code);
+		throw "Unimplemented instruction " + dcpu16::OP_T_STR.at((size_t)r.code);
 	}
 }
 

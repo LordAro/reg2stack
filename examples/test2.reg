@@ -10,5 +10,5 @@ OUT A
 SET B, 59
 OUT B
 
-ADD A, B
+SUB A, B
 OUT A
