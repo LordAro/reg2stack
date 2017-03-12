@@ -32,12 +32,14 @@ for p in REGISTER_PROGS:
     print('Running', ' '.join(prog))
     ret = subprocess.run(prog, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, check=True)
+    print(ret.stdout)
 
 for p in STACK_PROGS:
     prog = get_prog(p, 's')
     print('Running', ' '.join(prog))
     ret = subprocess.run(prog, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, check=True)
+    print(ret.stdout)
 
 print()
 
@@ -62,6 +64,7 @@ for p in CONVERSIONS:
     prog = get_prog(p, 's', conv=True)
     retstack = subprocess.run(prog, stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE, check=True)
+    print(retreg.stdout)
     if retreg.stdout != retstack.stdout:
         print('Result not equal!')
         print(retreg.stdout, '!=', retstack.stdout)
