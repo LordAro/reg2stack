@@ -2,7 +2,6 @@
 #define STACK_MACHINE_HPP
 
 #include <array>
-#include <boost/optional.hpp>
 #include <boost/variant.hpp>
 #include <map>
 #include <stack>
