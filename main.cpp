@@ -68,6 +68,7 @@ int main(int argc, char **argv)
 				break;
 			case 'f':
 				speedlimit = false;
+				break;
 			case 'h':
 				printUsage(argv[0]);
 				return 0;
