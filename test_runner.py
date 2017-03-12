@@ -24,7 +24,6 @@ def get_prog(name, typerun, conv=False):
         filename = FILEPATH.format(name, 'reg')
     elif typerun == 's':
         filename = FILEPATH.format(name, 'stack' if not conv else 'gen.stack')
-    args.append('-i')
     args.append(filename)
     return args
 

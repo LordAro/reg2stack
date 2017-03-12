@@ -24,7 +24,7 @@ void printUsage(const char *arg0)
 		"%s - an interpreter of some sort.\n"
 		"Does something with stacks\n"
 		"\n"
-		"Usage: %s [-v] [-s] -i file\n"
+		"Usage: %s [-v] [-f] [-scr] file\n"
 		"\n"
 		"-v    -  Verbose output\n"
 		"-f    -  Fast speed\n"
@@ -49,21 +49,21 @@ int main(int argc, char **argv)
 	mode m;
 	const char *filepath = "";
 	int c = 0;
-	while ((c = getopt(argc, argv, "hfvcsri:")) != -1) {
+	while ((c = getopt(argc, argv, "hfvc:s:r:")) != -1) {
 		switch (c) {
 			case 'v':
 				verbose = true;
 				break;
 			case 'c':
 				m = mode::CONVERT;
+				filepath = optarg;
 				break;
 			case 's':
 				m = mode::STACK;
+				filepath = optarg;
 				break;
 			case 'r':
 				m = mode::REGISTER;
-				break;
-			case 'i':
 				filepath = optarg;
 				break;
 			case 'f':
