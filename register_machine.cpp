@@ -97,6 +97,9 @@ boost::optional<instruction> tokenise_line(const std::string &line)
 	it++;
 
 	// All instructions have at least one operand
+	if (it == words.end()) {
+		throw "Incorrect number of operands for " + OP_T_STR.at((size_t)ins.code);
+	}
 	ins.b = get_operand(*it++);
 
 	// Only DAT & OUT have 1 operand
