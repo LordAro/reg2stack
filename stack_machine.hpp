@@ -3,6 +3,7 @@
 
 #include <array>
 #include <boost/optional.hpp>
+#include <boost/variant.hpp>
 #include <map>
 #include <stack>
 #include <vector>
@@ -93,7 +94,7 @@ static const std::array<std::string, (size_t)op_t::NUM_OPS> OP_T_STR{{
 	"POP",
 }};
 
-using operand_t = boost::optional<uint16_t>;
+using operand_t = boost::variant<boost::blank, uint16_t, std::string>;
 
 struct instruction {
 	std::string label;
@@ -103,7 +104,7 @@ struct instruction {
 
 std::ostream& operator<<(std::ostream& os, const instruction& ins);
 
-inline instruction make_instruction(op_t code, operand_t op = boost::none, std::string label = "")
+inline instruction make_instruction(op_t code, operand_t op = boost::blank(), std::string label = "")
 {
 	return {label, code, op};
 }
@@ -127,7 +128,7 @@ private:
 	uint8_t lbr;
 	uint8_t gbr;
 	uint8_t vba;
-	enum class flagbit {
+	enum class flagbit : uint8_t {
 		CARRY = 0,
 		ZERO = 1,
 		IMODE = 6,
@@ -137,6 +138,8 @@ private:
 	bool terminate;
 	program cur_prog;
 
+	uint16_t find_label(const std::string &l);
+
 	using opfunc_t = std::function<void(machine*)>;
 	using op_map = std::map<op_t, opfunc_t>;
 
@@ -144,6 +147,7 @@ private:
 
 	void binop_func(std::function<uint16_t(uint16_t, uint16_t)> op);
 	void comp_func(std::function<bool(uint16_t, uint16_t)> op);
+	void testzero_func();
 
 	void set_func(uint16_t v);
 	void load_func();

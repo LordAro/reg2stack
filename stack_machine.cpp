@@ -13,13 +13,13 @@ std::ostream& operator<<(std::ostream& os, const instruction& ins)
 {
 	if (!ins.label.empty()) os << ins.label << ": ";
 	os << OP_T_STR.at((size_t)ins.code);
-	if (ins.op != boost::none) os << ' ' << *ins.op;
+	if (ins.op.which() != 0) os << ' ' << ins.op;
 	return os;
 }
 
 operand_t get_operand(const std::string &tok)
 {
-	operand_t ret;
+	operand_t ret = boost::blank();
 	if (tok.size() > 1 && tolower(tok.back()) == 'h'
 			&& is_hex(tok.substr(0, tok.size() - 1))) {
 		// hex literal
@@ -28,7 +28,8 @@ operand_t get_operand(const std::string &tok)
 		// decimal literal
 		ret = static_cast<uint16_t>(std::stoul(tok));
 	} else {
-		throw "Could not get operand from " + tok;
+		// assume label
+		ret = tok;
 	}
 	return ret;
 }
@@ -40,8 +41,8 @@ boost::optional<instruction> tokenise_line(const std::string &line)
 
 	instruction ins;
 	auto it = words.begin();
-	if (it->front() == ':') {
-		ins.label = it->substr(1);
+	if (it->back() == ':') { // LABEL:
+		ins.label = it->substr(0, it->size() - 1);
 		++it;
 	}
 
@@ -53,8 +54,7 @@ boost::optional<instruction> tokenise_line(const std::string &line)
 	ins.code = static_cast<op_t>(std::distance(OP_T_STR.begin(), opit));
 	it++;
 
-	// Only SET & OUT have 1 operand
-	if (it != words.end() && ins.code == op_t::SET) {
+	if (it != words.end() && (ins.code == op_t::SET || ins.code == op_t::BRANCH || ins.code == op_t::BRZERO)) {
 		ins.op = get_operand(*it++);
 	}
 
@@ -84,6 +84,15 @@ program tokenise_source(const std::string &source)
 	return prog;
 }
 
+uint16_t machine::find_label(const std::string &l)
+{
+	auto pos = std::find_if(this->cur_prog.begin(), this->cur_prog.end(), [l](const instruction &i) { return i.label == l; });
+	if (pos == this->cur_prog.end()) {
+		throw "Undefined label '" + l + "' used";
+	}
+	return std::distance(this->cur_prog.begin(), pos);
+}
+
 void machine::run(const program &prog, bool verbose, bool speedlimit)
 {
 	this->cur_prog = prog;
@@ -94,26 +103,48 @@ void machine::run(const program &prog, bool verbose, bool speedlimit)
 
 		const auto &ins = this->cur_prog[pc];
 		std::cerr << ins << '\n';
-		switch (ins.code) {
-			case op_t::SET: // TODO: SSET & PUSH
-				this->set_func(*ins.op);
-				break;
-			case op_t::BRANCH:
-				this->pc += *ins.op - 1; // for postincrement
-				break;
-			case op_t::BRZERO:
-				if ((this->flags >> static_cast<uint8_t>(machine::flagbit::ZERO)) & 1) {
-					this->pc += *ins.op - 1; // for postincrement
-				}
-				break;
-			default:
-				try {
-					auto func = OPERATIONS.at(ins.code);
-					func(this);
-				} catch (std::bad_function_call) {
-					throw "Unrecognised instruction " + OP_T_STR.at((size_t)ins.code);
-				}
+
+		if (ins.code == op_t::SET || ins.code == op_t::BRANCH
+				|| ins.code == op_t::BRZERO) {
+			int op = 0;
+			switch (ins.op.which()) {
+				case 0: // blank
+					throw "Missing operand for " + OP_T_STR.at((size_t)ins.code);
+				case 1:
+					op = boost::get<uint16_t>(ins.op);
+					break;
+				case 2:
+					// branches are relative, so normalise
+					op = this->find_label(boost::get<std::string>(ins.op)) - this->pc;
+					break;
+			}
+
+			switch (ins.code) {
+				case op_t::SET:
+					this->set_func(op);
+					break;
+				case op_t::BRANCH:
+					this->pc += op - 1; // for postincrement
+					break;
+				case op_t::BRZERO:
+					if ((this->flags >> static_cast<uint8_t>(machine::flagbit::ZERO)) & 1) {
+						this->pc += op - 1; // for postincrement
+						// clear bit
+						ClrBit(this->flags, static_cast<uint8_t>(machine::flagbit::ZERO));
+					}
+					break;
+				default:
+					throw "Not reached";
+			}
+		} else {
+			try {
+				auto func = OPERATIONS.at(ins.code);
+				func(this);
+			} catch (std::bad_function_call) {
+				throw "Unrecognised instruction " + OP_T_STR.at((size_t)ins.code);
+			}
 		}
+
 		if (verbose) std::cout << this->register_dump() << '\n';
 		if (speedlimit) {
 			std::this_thread::sleep_until(start + std::chrono::milliseconds(100)); // arbitrary
@@ -123,7 +154,7 @@ void machine::run(const program &prog, bool verbose, bool speedlimit)
 
 std::string machine::register_dump()
 {
-	std::string ret = string_format("PC %04x\t", this->pc);
+	std::string ret = string_format("PC %04x\tFLAGS %04x\t", this->pc, this->flags);
 	ret += '(';
 	auto stack_copy = this->stack; // urgh.
 	while (!stack_copy.empty()) {
@@ -150,16 +181,16 @@ std::string machine::register_dump()
 	{op_t::TGT, [](machine *m){m->comp_func(std::greater<>());}},
 	{op_t::TLT, [](machine *m){m->comp_func(std::less<>());}},
 	{op_t::TEQ, [](machine *m){m->comp_func(std::equal_to<>());}},
-	{op_t::TSZ, [](machine *m){m->comp_func([](uint16_t t, uint16_t){return t == 0;});}},
+	{op_t::TSZ, &machine::testzero_func},
 
 	// SET special, SSET unimplemented
-	{op_t::LOAD,    &machine::load_func},
-	{op_t::STORE,   &machine::store_func},
+	{op_t::LOAD,   &machine::load_func},
+	{op_t::STORE,  &machine::store_func},
 	// BRANCH, BRZERO special, IBRANCH unimplemented
-	{op_t::CALL,    [](machine *m){m->terminate = true;}},
-	{op_t::RETURN,  [](machine *m){m->terminate = true;}},
-	{op_t::STOP,    [](machine *m){m->terminate = true;}},
-	{op_t::OUT,     [](machine *m){std::cout << m->stack.top() << '\n';}},
+	{op_t::CALL,   [](machine *m){m->terminate = true;}},
+	{op_t::RETURN, [](machine *m){m->terminate = true;}},
+	{op_t::STOP,   [](machine *m){m->terminate = true;}},
+	{op_t::OUT,    [](machine *m){std::cout << m->stack.top() << '\n';}},
 
 	{op_t::DROP,  [](machine* m){m->stack.pop();}},
 	{op_t::DUP,   [](machine* m){m->stack.push(m->stack.top());}},
@@ -219,8 +250,20 @@ void machine::comp_func(std::function<bool(uint16_t, uint16_t)> op)
 	uint16_t next = this->stack.top(); // no peeking..
 	this->stack.push(top); // restore
 	// sets nth bit (zero) to result of op
-	this->flags ^= (-static_cast<uint8_t>(op(top, next)) ^ this->flags)
-		& (1 << static_cast<uint8_t>(machine::flagbit::ZERO));
+	if (op(top, next)) {
+		SetBit(this->flags, static_cast<uint8_t>(machine::flagbit::ZERO));
+	} else {
+		ClrBit(this->flags, static_cast<uint8_t>(machine::flagbit::ZERO));
+	}
+}
+
+void machine::testzero_func()
+{
+	if (this->stack.top() == 0) {
+		SetBit(this->flags, static_cast<uint8_t>(machine::flagbit::ZERO));
+	} else {
+		ClrBit(this->flags, static_cast<uint8_t>(machine::flagbit::ZERO));
+	}
 }
 
 }

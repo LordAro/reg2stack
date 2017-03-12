@@ -20,4 +20,3 @@ std::vector<std::string> split_words(const std::string &line)
 	}
 	return words;
 }
-

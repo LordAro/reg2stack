@@ -83,7 +83,7 @@ boost::optional<instruction> tokenise_line(const std::string &line)
 	instruction ins;
 
 	auto it = words.begin();
-	if (it->front() == ':') {
+	if (it->front() == ':') { // :LABEL
 		ins.label = it->substr(1);
 		++it;
 	}

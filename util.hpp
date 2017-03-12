@@ -7,8 +7,8 @@
 #include <vector>
 
 std::vector<std::string> split_words(const std::string &line);
-template<typename ... Args>
 
+template<typename... Args>
 std::string string_format(const std::string& format, Args... args)
 {
 	size_t size = std::snprintf(nullptr, 0, format.c_str(), args...) + 1; // Extra space for '\0'
@@ -20,6 +20,42 @@ std::string string_format(const std::string& format, Args... args)
 inline bool is_hex(const std::string &s)
 {
 	return std::all_of(s.begin(), s.end(), ::isxdigit);
+}
+
+/**
+ * Set a bit in a variable.
+ *
+ * This function sets a bit in a variable. The variable is changed
+ * and the value is also returned. Parameter y defines the bit and
+ * starts at the LSB with 0.
+ *
+ * @param x The variable to set a bit
+ * @param y The bit position to set
+ * @pre y < sizeof(T) * 8
+ * @return The new value of the old value with the bit set
+ */
+template <typename T>
+T SetBit(T &x, const uint8_t y)
+{
+	return x = static_cast<T>(x | (static_cast<T>(1U) << y));
+}
+
+/**
+ * Clears a bit in a variable.
+ *
+ * This function clears a bit in a variable. The variable is
+ * changed and the value is also returned. Parameter y defines the bit
+ * to clear and starts at the LSB with 0.
+ *
+ * @param x The variable to clear the bit
+ * @param y The bit position to clear
+ * @pre y < sizeof(T) * 8
+ * @return The new value of the old value with the bit cleared
+ */
+template <typename T>
+T ClrBit(T &x, const uint8_t y)
+{
+	return x = static_cast<T>(x & ~(static_cast<T>(1U) << y));
 }
 
 #endif /* UTIL_HPP */
