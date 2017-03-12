@@ -1,0 +1,7 @@
+      SET 10
+LOOP: OUT
+      DEC
+      TSZ
+	  BRZERO END
+	  BRANCH LOOP
+END:  STOP

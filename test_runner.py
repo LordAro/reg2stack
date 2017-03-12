@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
+"""Runs test programs for reg2stack.
+
+Also tests conversions
+"""
 
 import subprocess
 
 FILEPATH = 'examples/{}.{}'
 
 REGISTER_PROGS = ['test1', 'test2']
-STACK_PROGS = []
+STACK_PROGS = ['loop']
 CONVERSIONS = ['test1', 'simple']
 
 def get_prog(name, typerun, conv=False):
+    """Builds the list of commandline args for a test program
+    """
     args = ['./reg2stack', '-f']
     if typerun not in ['r', 's', 'c']:
         raise 'Unknown run type'
