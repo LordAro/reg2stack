@@ -105,33 +105,40 @@ void machine::run(const program &prog, bool verbose, bool speedlimit)
 		std::cerr << ins << '\n';
 
 		if (ins.code == op_t::SET || ins.code == op_t::BRANCH
-				|| ins.code == op_t::BRZERO) {
-			int op = 0;
-			switch (ins.op.which()) {
-				case 0: // blank
-					throw "Missing operand for " + OP_T_STR.at((size_t)ins.code);
-				case 1:
-					op = boost::get<uint16_t>(ins.op);
-					break;
-				case 2:
-					// branches are relative, so normalise
-					op = this->find_label(boost::get<std::string>(ins.op)) - this->pc;
-					break;
+				|| ins.code == op_t::BRZERO || ins.code == op_t::IBRANCH) {
+
+			if (ins.op.which() == 0) {
+				throw "Missing operand for " + OP_T_STR.at((size_t)ins.code);
 			}
 
 			switch (ins.code) {
 				case op_t::SET:
-					this->set_func(op);
-					break;
-				case op_t::BRANCH:
-					this->pc += op - 1; // for postincrement
+					if (ins.op.which() != 1) {
+						throw "Tried to SET to a label";
+					}
+					this->set_func(boost::get<uint16_t>(ins.op));
 					break;
 				case op_t::BRZERO:
-					if ((this->flags >> static_cast<uint8_t>(machine::flagbit::ZERO)) & 1) {
-						this->pc += op - 1; // for postincrement
-						// clear bit
-						ClrBit(this->flags, static_cast<uint8_t>(machine::flagbit::ZERO));
+					if (!HasBit(this->flags, static_cast<uint8_t>(machine::flagbit::ZERO))) {
+						break;
 					}
+					ClrBit(this->flags, static_cast<uint8_t>(machine::flagbit::ZERO));
+					/* FALLTHROUGH */
+				case op_t::BRANCH:
+					if (ins.op.which() == 1) {
+						this->pc += boost::get<uint16_t>(ins.op); // relative if number
+					} else {
+						this->pc = this->find_label(boost::get<std::string>(ins.op));
+					}
+					this->pc -= 1; // for postincrement
+					break;
+				case op_t::IBRANCH: // absolute
+					if (ins.op.which() == 1) {
+						this->pc = boost::get<uint16_t>(ins.op);
+					} else {
+						this->pc = this->find_label(boost::get<std::string>(ins.op));
+					}
+					this->pc -= 1; // for postincrement
 					break;
 				default:
 					throw "Not reached";
@@ -186,7 +193,7 @@ std::string machine::register_dump()
 	// SET special, SSET unimplemented
 	{op_t::LOAD,   &machine::load_func},
 	{op_t::STORE,  &machine::store_func},
-	// BRANCH, BRZERO special, IBRANCH unimplemented
+	// BRANCH, BRZERO, IBRANCH special
 	{op_t::CALL,   [](machine *m){m->terminate = true;}},
 	{op_t::RETURN, [](machine *m){m->terminate = true;}},
 	{op_t::STOP,   [](machine *m){m->terminate = true;}},

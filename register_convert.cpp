@@ -23,8 +23,9 @@ prog_snippet operand_addr_on_stack(dcpu16::operand_t x)
 			// continuing much sad.
 			std::string op = boost::get<std::string>(x);
 			if (op.size() <= 2 || op.front() != '[' || op.back() != ']') { // array val
-				throw "Unrecognised string value";
+				throw "Attempted to load a label onto the stack";
 			}
+
 			std::string interior = op.substr(1, op.length() - 2);
 			dcpu16::operand_t i = dcpu16::get_operand(interior);
 			// TODO: Unnest this section?
@@ -73,14 +74,21 @@ prog_snippet operand_val_on_stack(dcpu16::operand_t x)
 	return ret;
 }
 
-prog_snippet set_snippet(dcpu16::operand_t b, dcpu16::operand_t a)
+prog_snippet set_snippet(const dcpu16::instruction &ins)
 {
-	prog_snippet ret = operand_val_on_stack(a);
-	switch (b.which()) {
+	// SET PC, x is special
+	// TODO: handle numeric (& +/-??)
+	if (ins.b.which() == 1 && boost::get<dcpu16::reg_t>(ins.b) == dcpu16::reg_t::PC && ins.a.which() == 0) {
+		return {j5::make_instruction(j5::op_t::BRANCH, boost::get<std::string>(ins.a))};
+	}
+
+	prog_snippet ret = operand_val_on_stack(ins.a);
+	switch (ins.b.which()) {
 		case 0: // string
 			throw "Setting to string NYI";
 		case 1: { // reg
-			uint16_t addr = reg2memaddr(boost::get<dcpu16::reg_t>(b));
+			auto reg = boost::get<dcpu16::reg_t>(ins.b);
+			uint16_t addr = reg2memaddr(reg);
 			ret.emplace_back(j5::make_instruction(j5::op_t::SET, addr));
 			break;
 		}
@@ -91,48 +99,62 @@ prog_snippet set_snippet(dcpu16::operand_t b, dcpu16::operand_t a)
 	return ret;
 }
 
-prog_snippet out_snippet(dcpu16::operand_t b, dcpu16::operand_t)
+prog_snippet out_snippet(const dcpu16::instruction &ins)
 {
-	prog_snippet ret = operand_val_on_stack(b);
+	prog_snippet ret = operand_val_on_stack(ins.b);
 	ret.emplace_back(j5::make_instruction(j5::op_t::OUT));
 	ret.emplace_back(j5::make_instruction(j5::op_t::DROP));
 	return ret;
 }
 
 // TODO EX register
-prog_snippet add_snippet(dcpu16::operand_t b, dcpu16::operand_t a)
+prog_snippet add_snippet(const dcpu16::instruction &ins)
 {
-	if (b.which() == 2) {
+	if (ins.b.which() == 2) {
 		return {}; // nop
 	}
-	prog_snippet b_snip = operand_val_on_stack(b);
-	prog_snippet a_snip = operand_val_on_stack(a);
+	prog_snippet b_snip = operand_val_on_stack(ins.b);
+	prog_snippet a_snip = operand_val_on_stack(ins.a);
 	prog_snippet ret;
 	ret.insert(ret.end(), b_snip.begin(), b_snip.end());
 	ret.insert(ret.end(), a_snip.begin(), a_snip.end());
 	ret.emplace_back(j5::make_instruction(j5::op_t::ADD));
 
-	prog_snippet addr_snip = operand_addr_on_stack(b);
+	prog_snippet addr_snip = operand_addr_on_stack(ins.b);
 	ret.insert(ret.end(), addr_snip.begin(), addr_snip.end());
 	ret.emplace_back(j5::make_instruction(j5::op_t::STORE));
 	return ret;
 }
 
-prog_snippet sub_snippet(dcpu16::operand_t b, dcpu16::operand_t a)
+prog_snippet sub_snippet(const dcpu16::instruction &ins)
 {
-	if (b.which() == 2) {
+	if (ins.b.which() == 2) {
 		return {}; // nop
 	}
-	prog_snippet b_snip = operand_val_on_stack(b);
-	prog_snippet a_snip = operand_val_on_stack(a);
+	prog_snippet b_snip = operand_val_on_stack(ins.b);
+	prog_snippet a_snip = operand_val_on_stack(ins.a);
 	prog_snippet ret;
 	ret.insert(ret.end(), b_snip.begin(), b_snip.end());
 	ret.insert(ret.end(), a_snip.begin(), a_snip.end());
 	ret.emplace_back(j5::make_instruction(j5::op_t::SUB));
 
-	prog_snippet addr_snip = operand_addr_on_stack(b);
+	prog_snippet addr_snip = operand_addr_on_stack(ins.b);
 	ret.insert(ret.end(), addr_snip.begin(), addr_snip.end());
 	ret.emplace_back(j5::make_instruction(j5::op_t::STORE));
+	return ret;
+}
+
+prog_snippet ifn_snippet(const dcpu16::instruction &ins)
+{
+	prog_snippet b_snip = operand_val_on_stack(ins.b);
+	prog_snippet a_snip = operand_val_on_stack(ins.a);
+	prog_snippet ret;
+	ret.insert(ret.end(), b_snip.begin(), b_snip.end());
+	ret.insert(ret.end(), a_snip.begin(), a_snip.end());
+	ret.emplace_back(j5::make_instruction(j5::op_t::TEQ)); // invert condition
+	ret.emplace_back(j5::make_instruction(j5::op_t::BRZERO, 2+2)); // TODO: ???
+	ret.emplace_back(j5::make_instruction(j5::op_t::DROP));
+	ret.emplace_back(j5::make_instruction(j5::op_t::DROP));
 	return ret;
 }
 
@@ -144,17 +166,23 @@ prog_snippet sub_snippet(dcpu16::operand_t b, dcpu16::operand_t a)
  */
 prog_snippet instruction_convert(const dcpu16::instruction &r)
 {
-	static const std::map<dcpu16::op_t, std::function<prog_snippet(dcpu16::operand_t, dcpu16::operand_t)>> conv_map {
+	static const std::map<dcpu16::op_t, std::function<prog_snippet(const dcpu16::instruction &)>> conv_map {
 		{dcpu16::op_t::SET, &set_snippet},
 		{dcpu16::op_t::ADD, &add_snippet},
 		{dcpu16::op_t::SUB, &sub_snippet},
 		{dcpu16::op_t::OUT, &out_snippet},
+		{dcpu16::op_t::IFN, &ifn_snippet},
 	};
 	auto keyval = conv_map.find(r.code);
 	if (keyval != conv_map.end()) {
-		return keyval->second(r.b, r.a);
+		auto converted = keyval->second(r);
+		if (r.label != "") {
+			// TODO: preserve label if prevous conversion resulted in a nop
+			converted.front().label = r.label;
+		}
+		return converted;
 	} else {
-		throw "Unimplemented instruction " + dcpu16::OP_T_STR.at((size_t)r.code);
+		throw "Unimplemented conversion of " + dcpu16::OP_T_STR.at((size_t)r.code);
 	}
 }
 

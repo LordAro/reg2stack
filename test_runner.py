@@ -10,7 +10,7 @@ FILEPATH = 'examples/{}.{}'
 
 REGISTER_PROGS = ['test1', 'test2']
 STACK_PROGS = ['loop']
-CONVERSIONS = ['test1', 'simple']
+CONVERSIONS = ['test1', 'simple', 'loop']
 
 def get_prog(name, typerun, conv=False):
     """Builds the list of commandline args for a test program

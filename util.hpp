@@ -23,6 +23,24 @@ inline bool is_hex(const std::string &s)
 }
 
 /**
+ * Checks if a bit in a value is set.
+ *
+ * This function checks if a bit inside a value is set or not.
+ * The \a y value specific the position of the bit, started at the
+ * LSB and count from \c 0.
+ *
+ * @param x The value to check
+ * @param y The position of the bit to check, started from the LSB
+ * @pre y < sizeof(T) * 8
+ * @return True if the bit is set, false else.
+ */
+template <typename T>
+static inline bool HasBit(const T x, const uint8_t y)
+{
+	return (x & (static_cast<T>(1U) << y)) != 0;
+}
+
+/**
  * Set a bit in a variable.
  *
  * This function sets a bit in a variable. The variable is changed

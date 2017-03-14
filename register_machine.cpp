@@ -182,9 +182,12 @@ void machine::set_val(const operand_t &x, uint16_t val)
 			}
 			break;
 		}
-		case 1:
-			this->set_reg(boost::get<reg_t>(x), val);
+		case 1: {
+			auto reg = boost::get<reg_t>(x);
+			if (reg == reg_t::PC) val -= 1; // for postincrement
+			this->set_reg(reg, val);
 			break;
+		}
 		case 2:
 			break; // silently fail attempting to set a literal
 	}
