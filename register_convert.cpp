@@ -22,7 +22,7 @@ prog_snippet operand_addr_on_stack(dcpu16::operand_t x)
 		case 0: {// string
 			// continuing much sad.
 			std::string op = boost::get<std::string>(x);
-			if (op.size() <= 2 || op.front() != '[' || op.back() != ']') { // array val
+			if (!dcpu16::is_array_type(op)) {
 				throw "Attempted to load a label onto the stack";
 			}
 
@@ -84,8 +84,15 @@ prog_snippet set_snippet(const dcpu16::instruction &ins)
 
 	prog_snippet ret = operand_val_on_stack(ins.a);
 	switch (ins.b.which()) {
-		case 0: // string
+		case 0: { // string
+			/* Note, currently just assuming you don't
+			 * try to overwrite the operators at <0x2000 */
+			auto op = boost::get<std::string>(ins.b);
+			if (dcpu16::is_array_type(op)) {
+			}
+
 			throw "Setting to string NYI";
+		}
 		case 1: { // reg
 			auto reg = boost::get<dcpu16::reg_t>(ins.b);
 			uint16_t addr = reg2memaddr(reg);

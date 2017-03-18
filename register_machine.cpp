@@ -148,7 +148,7 @@ uint16_t machine::get_val(const operand_t &x)
 		case 0: { // string
 			// much sad.
 			std::string op = boost::get<std::string>(x);
-			if (op.size() > 2 && op.front() == '[' && op.back() == ']') { // array val
+			if (is_array_type(op)) {
 				std::string interior = op.substr(1, op.length() - 2);
 				return this->mem.at(this->get_val(get_operand(interior)));
 			} else if (op.find('+') != std::string::npos) { // expression. needs expanding to others
@@ -174,7 +174,7 @@ void machine::set_val(const operand_t &x, uint16_t val)
 		case 0: {
 			// duplicates a lot of get_val
 			std::string op = boost::get<std::string>(x);
-			if (op.size() > 2 && op.front() == '[' && op.back() == ']') { // array val
+			if (is_array_type(op)) {
 				std::string interior = op.substr(1, op.length() - 2);
 				this->mem.at(this->get_val(get_operand(interior))) = val;
 			} else {

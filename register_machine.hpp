@@ -110,6 +110,10 @@ static const std::array<std::string, (size_t)reg_t::NUM_REGS> REG_T_STR{{
 reg_t find_reg(const std::string &r);
 std::ostream& operator<<(std::ostream &os, reg_t r);
 
+inline bool is_array_type(const std::string &s)
+{
+	return s.size() > 2 && s.front() == '[' && s.back() == ']';
+}
 
 using operand_t = boost::variant<std::string, reg_t, uint16_t>;
 
