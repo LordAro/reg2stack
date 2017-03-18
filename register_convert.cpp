@@ -152,7 +152,9 @@ prog_snippet ifn_snippet(const dcpu16::instruction &ins)
 	ret.insert(ret.end(), b_snip.begin(), b_snip.end());
 	ret.insert(ret.end(), a_snip.begin(), a_snip.end());
 	ret.emplace_back(j5::make_instruction(j5::op_t::TEQ)); // invert condition
-	ret.emplace_back(j5::make_instruction(j5::op_t::BRZERO, 2+2)); // TODO: ???
+	/* Actual length is handled in the main loop, as this
+	 * requires the generated length of the next instruction. */
+	ret.emplace_back(j5::make_instruction(j5::op_t::BRZERO, 2));
 	ret.emplace_back(j5::make_instruction(j5::op_t::DROP));
 	ret.emplace_back(j5::make_instruction(j5::op_t::DROP));
 	return ret;
@@ -188,10 +190,24 @@ prog_snippet instruction_convert(const dcpu16::instruction &r)
 
 j5::program reg2stack(dcpu16::program p)
 {
-	j5::program ret;
+	std::vector<j5::program> snippets;
 	for (const auto &i : p) {
 		auto snippet = instruction_convert(i);
-		ret.insert(ret.end(), snippet.begin(), snippet.end());
+
+		/* Deal with generated BRZERO from if statements
+		 * requiring the length of the next instruction */
+		// TODO: Look at p instead of snippets?
+		if (snippets.size() != 0) {
+			auto &last = snippets.back();
+			auto brzero_idx = std::find_if(last.begin(), last.end(),
+					[](const j5::instruction &i){return i.code == j5::op_t::BRZERO;});
+			if (brzero_idx != last.end()) {
+				brzero_idx->op = snippet.size() + 1 + 2;
+			}
+		}
+		snippets.push_back(snippet);
 	}
+	j5::program ret;
+	for(const auto &v : snippets) ret.insert(ret.end(), v.begin(), v.end());
 	return ret;
 }
