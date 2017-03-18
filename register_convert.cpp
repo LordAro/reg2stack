@@ -82,26 +82,12 @@ prog_snippet set_snippet(const dcpu16::instruction &ins)
 		return {j5::make_instruction(j5::op_t::BRANCH, boost::get<std::string>(ins.a))};
 	}
 
-	prog_snippet ret = operand_val_on_stack(ins.a);
-	switch (ins.b.which()) {
-		case 0: { // string
-			/* Note, currently just assuming you don't
-			 * try to overwrite the operators at <0x2000 */
-			auto op = boost::get<std::string>(ins.b);
-			if (dcpu16::is_array_type(op)) {
-			}
-
-			throw "Setting to string NYI";
-		}
-		case 1: { // reg
-			auto reg = boost::get<dcpu16::reg_t>(ins.b);
-			uint16_t addr = reg2memaddr(reg);
-			ret.emplace_back(j5::make_instruction(j5::op_t::SET, addr));
-			break;
-		}
-		case 2: // literal
-			return {}; // nop
-	}
+	if (ins.b.which() == 2) return {}; // setting to literal == nop
+	prog_snippet ret;
+	auto a_snip = operand_val_on_stack(ins.a);
+	auto b_snip = operand_addr_on_stack(ins.b);
+	ret.insert(ret.end(), a_snip.begin(), a_snip.end());
+	ret.insert(ret.end(), b_snip.begin(), b_snip.end());
 	ret.emplace_back(j5::make_instruction(j5::op_t::STORE));
 	return ret;
 }
