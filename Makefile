@@ -15,6 +15,9 @@ $(TARGET): $(OBJFILES)
 $(OBJDIR)/%.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
+test: $(TARGET)
+	./test_runner.py
+
 clean:
 	rm -f $(TARGET)
 	rm -f $(OBJFILES)
