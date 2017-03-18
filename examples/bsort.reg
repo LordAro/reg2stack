@@ -34,17 +34,6 @@ SET [0x301f], 29832
 
 SET [0x2fff], 32 ; length
 
-:INIT DAT "Initial:"
-:RES  DAT "Result:"
-
-; output initial
-        OUT INIT
-        SET I, 0
-:INITL  OUT [0x3000+I]
-        ADD I, 1
-	    IFN I, [0x2fff]
-	      SET PC, INITL
-
 ; sort
         SET J, [0x2fff]
 :LOOP   SUB J, 1
@@ -64,7 +53,6 @@ SET [0x2fff], 32 ; length
           SET PC, LOOP
 
 ; output result
-       OUT RES
        SET I, 0
 :RESL  OUT [0x3000+I]
        ADD I, 1
