@@ -8,7 +8,7 @@ import subprocess
 
 FILEPATH = 'examples/{}.{}'
 
-REGISTER_PROGS = ['test1', 'test2']
+REGISTER_PROGS = ['test1', 'test2', 'bsort']
 STACK_PROGS = ['loop']
 CONVERSIONS = ['test1', 'simple', 'loop']
 
