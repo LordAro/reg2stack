@@ -12,6 +12,48 @@ uint16_t reg2memaddr(dcpu16::reg_t r)
 	return 0x2000 - (static_cast<size_t>(r) + 1);
 }
 
+/**
+ * Takes an "array type" and puts the index of it on the stack
+ */
+prog_snippet index_on_stack(dcpu16::operand_t x)
+{
+	assert(x.which() == 0); // arrays are, sadly, strings
+	std::string op = boost::get<std::string>(x);
+	if (!dcpu16::is_array_type(op)) {
+		throw "Attempted to load a label onto the stack" + op;
+	}
+
+	prog_snippet ret;
+	std::string interior = op.substr(1, op.length() - 2);
+	dcpu16::operand_t i = dcpu16::get_operand(interior);
+	switch (i.which()) {
+		case 0: {
+			size_t pos = interior.find('+');
+			if (pos == std::string::npos) {
+				throw "String memory addressing attempted";
+			}
+			auto p1 = value_on_stack(dcpu16::get_operand(interior.substr(0, pos)));
+			auto p2 = value_on_stack(dcpu16::get_operand(interior.substr(pos + 1)));
+			ret.insert(ret.end(), p1.begin(), p1.end());
+			ret.insert(ret.end(), p2.begin(), p2.end());
+			ret.emplace_back(j5::make_instruction(j5::op_t::ADD));
+			break;
+		}
+		case 1: {
+			uint16_t val = reg2memaddr(boost::get<dcpu16::reg_t>(i));
+			ret.emplace_back(j5::make_instruction(j5::op_t::SET, val));
+			ret.emplace_back(j5::make_instruction(j5::op_t::LOAD)); // deref
+			break;
+		}
+		case 2: {
+			uint16_t val = boost::get<uint16_t>(i);
+			ret.emplace_back(j5::make_instruction(j5::op_t::SET, val));
+			break;
+		}
+	}
+	return ret;
+}
+
 /*
  * Pushes the *address* of a register operand onto the stack (no other sideeffects)
  */
@@ -19,35 +61,9 @@ prog_snippet address_on_stack(dcpu16::operand_t x)
 {
 	prog_snippet ret;
 	switch (x.which()) {
-		case 0: {// string
-			// continuing much sad.
-			std::string op = boost::get<std::string>(x);
-			if (!dcpu16::is_array_type(op)) {
-				throw "Attempted to load a label onto the stack";
-			}
-
-			std::string interior = op.substr(1, op.length() - 2);
-			dcpu16::operand_t i = dcpu16::get_operand(interior);
-			// TODO: Unnest this section?
-			switch (i.which()) {
-				case 0: throw "String memory addressing attempted"; // plsno
-					//size_t pos = op.find('+'); // TODO
-					//std::string p1 = op.substr(0, pos);
-					//std::string p2 = op.substr(pos + 1);
-				case 1: {
-					uint16_t val = reg2memaddr(boost::get<dcpu16::reg_t>(i));
-					ret.emplace_back(j5::make_instruction(j5::op_t::SET, val));
-					ret.emplace_back(j5::make_instruction(j5::op_t::LOAD)); // additional deref
-					break;
-				}
-				case 2: {
-					uint16_t val = boost::get<uint16_t>(i);
-					ret.emplace_back(j5::make_instruction(j5::op_t::SET, val));
-					break;
-				}
-			}
+		case 0: // string
+			ret = index_on_stack(x);
 			break;
-		}
 		case 1: {
 			uint16_t val = reg2memaddr(boost::get<dcpu16::reg_t>(x));
 			ret.emplace_back(j5::make_instruction(j5::op_t::SET, val));
