@@ -153,6 +153,9 @@ private:
 	void store_func();
 	void swap_func();
 	void out_func();
+	void rsu3_func();
+	void rsd3_func();
+	void copy3_func();
 };
 
 }

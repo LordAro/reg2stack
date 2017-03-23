@@ -194,19 +194,19 @@ std::string machine::register_dump()
 	{op_t::LOAD,   &machine::load_func},
 	{op_t::STORE,  &machine::store_func},
 	// BRANCH, BRZERO, IBRANCH special
-	{op_t::CALL,   [](machine *m){m->terminate = true;}},
-	{op_t::RETURN, [](machine *m){m->terminate = true;}},
+//	{op_t::CALL,   [](machine *m){m->terminate = true;}},
+//	{op_t::RETURN, [](machine *m){m->terminate = true;}},
 	{op_t::STOP,   [](machine *m){m->terminate = true;}},
 	{op_t::OUT,    [](machine *m){std::cout << m->stack.top() << '\n';}},
 
 	{op_t::DROP,  [](machine* m){m->stack.pop();}},
 	{op_t::DUP,   [](machine* m){m->stack.push(m->stack.top());}},
 	{op_t::SWAP,  &machine::swap_func},
-	{op_t::RSD3,  [](machine *m){m->terminate = true;}},
-	{op_t::RSU3,  [](machine *m){m->terminate = true;}},
-	{op_t::TUCK2, [](machine *m){m->terminate = true;}},
-	{op_t::TUCK3, [](machine *m){m->terminate = true;}},
-	{op_t::COPY3, [](machine *m){m->terminate = true;}},
+	{op_t::RSD3,  &machine::rsd3_func},
+	{op_t::RSU3,  &machine::rsu3_func},
+//	{op_t::TUCK2, [](machine *m){m->terminate = true;}},
+//	{op_t::TUCK3, [](machine *m){m->terminate = true;}},
+	{op_t::COPY3, &machine::copy3_func},
 	// PUSH,POP special
 }};
 
@@ -273,4 +273,41 @@ void machine::testzero_func()
 	}
 }
 
+void machine::rsu3_func()
+{
+	uint16_t top = this->stack.top();
+	this->stack.pop();
+	uint16_t next = this->stack.top();
+	this->stack.pop();
+	uint16_t third = this->stack.top();
+	this->stack.pop();
+	this->stack.push(top);
+	this->stack.push(third);
+	this->stack.push(next);
+}
+
+void machine::rsd3_func()
+{
+	uint16_t top = this->stack.top();
+	this->stack.pop();
+	uint16_t next = this->stack.top();
+	this->stack.pop();
+	uint16_t third = this->stack.top();
+	this->stack.pop();
+	this->stack.push(next);
+	this->stack.push(top);
+	this->stack.push(third);
+}
+
+void machine::copy3_func()
+{
+	uint16_t top = this->stack.top();
+	this->stack.pop();
+	uint16_t next = this->stack.top();
+	this->stack.pop();
+	uint16_t third = this->stack.top();
+	this->stack.push(next);
+	this->stack.push(top);
+	this->stack.push(third);
+}
 }
