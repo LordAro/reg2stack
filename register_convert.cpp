@@ -153,14 +153,18 @@ prog_snippet sub_snippet(const dcpu16::instruction &ins)
 	return ret;
 }
 
-prog_snippet ifn_snippet(const dcpu16::instruction &ins)
+prog_snippet if_snippet(const dcpu16::instruction &ins, j5::op_t test_op, bool swap)
 {
 	prog_snippet b_snip = value_on_stack(ins.b);
 	prog_snippet a_snip = value_on_stack(ins.a);
 	prog_snippet ret;
-	ret.insert(ret.end(), b_snip.begin(), b_snip.end());
+
+	if (!swap) ret.insert(ret.end(), b_snip.begin(), b_snip.end());
 	ret.insert(ret.end(), a_snip.begin(), a_snip.end());
-	ret.emplace_back(j5::make_instruction(j5::op_t::TEQ)); // invert condition
+	if (swap) ret.insert(ret.end(), b_snip.begin(), b_snip.end());
+
+	ret.emplace_back(j5::make_instruction(test_op));
+
 	/* Actual length is handled in the main loop, as this
 	 * requires the generated length of the next instruction. */
 	ret.emplace_back(j5::make_instruction(j5::op_t::BRZERO, 2));
@@ -177,12 +181,17 @@ prog_snippet ifn_snippet(const dcpu16::instruction &ins)
  */
 prog_snippet instruction_convert(const dcpu16::instruction &r)
 {
+	using namespace std::placeholders;
+
 	static const std::map<dcpu16::op_t, std::function<prog_snippet(const dcpu16::instruction &)>> conv_map {
 		{dcpu16::op_t::SET, &set_snippet},
 		{dcpu16::op_t::ADD, &add_snippet},
 		{dcpu16::op_t::SUB, &sub_snippet},
 		{dcpu16::op_t::OUT, &out_snippet},
-		{dcpu16::op_t::IFN, &ifn_snippet},
+		{dcpu16::op_t::IFN, std::bind(&if_snippet, _1, j5::op_t::TEQ, false)},
+		{dcpu16::op_t::IFG, std::bind(&if_snippet, _1, j5::op_t::TLT, true)},
+	//	{dcpu16::op_t::IFE, std::bind(&if_snippet, _1, j5::op_t::TEQ, false)},
+		{dcpu16::op_t::IFL, std::bind(&if_snippet, _1, j5::op_t::TGT, true)},
 	};
 	auto keyval = conv_map.find(r.code);
 	if (keyval != conv_map.end()) {
