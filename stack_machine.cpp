@@ -147,7 +147,7 @@ void machine::run(const program &prog, bool verbose, bool speedlimit)
 			try {
 				auto func = OPERATIONS.at(ins.code);
 				func(this);
-			} catch (std::bad_function_call) {
+			} catch (std::out_of_range) {
 				throw "Unrecognised instruction " + OP_T_STR.at((size_t)ins.code);
 			}
 		}
