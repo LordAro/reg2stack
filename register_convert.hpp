@@ -10,4 +10,8 @@ using prog_snippet = std::vector<j5::instruction>;
 
 j5::program reg2stack(dcpu16::program p);
 
+prog_snippet index_on_stack(dcpu16::operand_t x);
+prog_snippet address_on_stack(dcpu16::operand_t x);
+prog_snippet value_on_stack(dcpu16::operand_t x);
+
 #endif /* REGISTER_CONVERT_HPP */

@@ -15,7 +15,7 @@ uint16_t reg2memaddr(dcpu16::reg_t r)
 /*
  * Pushes the *address* of a register operand onto the stack (no other sideeffects)
  */
-prog_snippet operand_addr_on_stack(dcpu16::operand_t x)
+prog_snippet address_on_stack(dcpu16::operand_t x)
 {
 	prog_snippet ret;
 	switch (x.which()) {
@@ -65,9 +65,9 @@ prog_snippet operand_addr_on_stack(dcpu16::operand_t x)
  * Pushes the value of a register operand onto the stack (no other sideeffects)
  * What happens next is anyone's guess :)
  */
-prog_snippet operand_val_on_stack(dcpu16::operand_t x)
+prog_snippet value_on_stack(dcpu16::operand_t x)
 {
-	prog_snippet ret = operand_addr_on_stack(x);
+	prog_snippet ret = address_on_stack(x);
 	if (x.which() == 0 || x.which() == 1) {
 		ret.emplace_back(j5::make_instruction(j5::op_t::LOAD));
 	}
@@ -84,8 +84,8 @@ prog_snippet set_snippet(const dcpu16::instruction &ins)
 
 	if (ins.b.which() == 2) return {}; // setting to literal == nop
 	prog_snippet ret;
-	auto a_snip = operand_val_on_stack(ins.a);
-	auto b_snip = operand_addr_on_stack(ins.b);
+	auto a_snip = value_on_stack(ins.a);
+	auto b_snip = address_on_stack(ins.b);
 	ret.insert(ret.end(), a_snip.begin(), a_snip.end());
 	ret.insert(ret.end(), b_snip.begin(), b_snip.end());
 	ret.emplace_back(j5::make_instruction(j5::op_t::STORE));
@@ -94,7 +94,7 @@ prog_snippet set_snippet(const dcpu16::instruction &ins)
 
 prog_snippet out_snippet(const dcpu16::instruction &ins)
 {
-	prog_snippet ret = operand_val_on_stack(ins.b);
+	prog_snippet ret = value_on_stack(ins.b);
 	ret.emplace_back(j5::make_instruction(j5::op_t::OUT));
 	ret.emplace_back(j5::make_instruction(j5::op_t::DROP));
 	return ret;
@@ -106,14 +106,14 @@ prog_snippet add_snippet(const dcpu16::instruction &ins)
 	if (ins.b.which() == 2) {
 		return {}; // nop
 	}
-	prog_snippet b_snip = operand_val_on_stack(ins.b);
-	prog_snippet a_snip = operand_val_on_stack(ins.a);
+	prog_snippet b_snip = value_on_stack(ins.b);
+	prog_snippet a_snip = value_on_stack(ins.a);
 	prog_snippet ret;
 	ret.insert(ret.end(), b_snip.begin(), b_snip.end());
 	ret.insert(ret.end(), a_snip.begin(), a_snip.end());
 	ret.emplace_back(j5::make_instruction(j5::op_t::ADD));
 
-	prog_snippet addr_snip = operand_addr_on_stack(ins.b);
+	prog_snippet addr_snip = address_on_stack(ins.b);
 	ret.insert(ret.end(), addr_snip.begin(), addr_snip.end());
 	ret.emplace_back(j5::make_instruction(j5::op_t::STORE));
 	return ret;
@@ -124,14 +124,14 @@ prog_snippet sub_snippet(const dcpu16::instruction &ins)
 	if (ins.b.which() == 2) {
 		return {}; // nop
 	}
-	prog_snippet b_snip = operand_val_on_stack(ins.b);
-	prog_snippet a_snip = operand_val_on_stack(ins.a);
+	prog_snippet b_snip = value_on_stack(ins.b);
+	prog_snippet a_snip = value_on_stack(ins.a);
 	prog_snippet ret;
 	ret.insert(ret.end(), b_snip.begin(), b_snip.end());
 	ret.insert(ret.end(), a_snip.begin(), a_snip.end());
 	ret.emplace_back(j5::make_instruction(j5::op_t::SUB));
 
-	prog_snippet addr_snip = operand_addr_on_stack(ins.b);
+	prog_snippet addr_snip = address_on_stack(ins.b);
 	ret.insert(ret.end(), addr_snip.begin(), addr_snip.end());
 	ret.emplace_back(j5::make_instruction(j5::op_t::STORE));
 	return ret;
@@ -139,8 +139,8 @@ prog_snippet sub_snippet(const dcpu16::instruction &ins)
 
 prog_snippet ifn_snippet(const dcpu16::instruction &ins)
 {
-	prog_snippet b_snip = operand_val_on_stack(ins.b);
-	prog_snippet a_snip = operand_val_on_stack(ins.a);
+	prog_snippet b_snip = value_on_stack(ins.b);
+	prog_snippet a_snip = value_on_stack(ins.a);
 	prog_snippet ret;
 	ret.insert(ret.end(), b_snip.begin(), b_snip.end());
 	ret.insert(ret.end(), a_snip.begin(), a_snip.end());
