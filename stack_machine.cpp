@@ -95,9 +95,7 @@ uint16_t machine::find_label(const std::string &l)
 
 void machine::run_instruction(const instruction &ins)
 {
-	if ((ins.code == op_t::SET || ins.code == op_t::BRANCH
-			|| ins.code == op_t::BRZERO || ins.code == op_t::IBRANCH)
-			&& ins.op.which() == 0) {
+	if ((ins.code == op_t::SET || ins.code == op_t::BRANCH || ins.code == op_t::BRZERO) && ins.op.which() == 0) {
 		throw "Missing operand for " + OP_T_STR.at((size_t)ins.code);
 	}
 
@@ -117,14 +115,6 @@ void machine::run_instruction(const instruction &ins)
 		case op_t::BRANCH:
 			if (ins.op.which() == 1) {
 				this->pc += boost::get<uint16_t>(ins.op); // relative if number
-			} else {
-				this->pc = this->find_label(boost::get<std::string>(ins.op));
-			}
-			this->pc -= 1; // for postincrement
-			break;
-		case op_t::IBRANCH: // absolute
-			if (ins.op.which() == 1) {
-				this->pc = boost::get<uint16_t>(ins.op);
 			} else {
 				this->pc = this->find_label(boost::get<std::string>(ins.op));
 			}
@@ -193,11 +183,12 @@ std::string machine::register_dump()
 	// SET special, SSET unimplemented
 	{op_t::LOAD,   &machine::load_func},
 	{op_t::STORE,  &machine::store_func},
-	// BRANCH, BRZERO, IBRANCH special
-//	{op_t::CALL,   [](machine *m){m->terminate = true;}},
-//	{op_t::RETURN, [](machine *m){m->terminate = true;}},
-	{op_t::STOP,   [](machine *m){m->terminate = true;}},
-	{op_t::OUT,    [](machine *m){std::cout << m->stack.top() << '\n';}},
+	// BRANCH, BRZERO special
+//	{op_t::IBRANCH, [](machine *m){m->terminate = true;}},
+//	{op_t::CALL,    [](machine *m){m->terminate = true;}},
+//	{op_t::RETURN,  [](machine *m){m->terminate = true;}},
+	{op_t::STOP,    [](machine *m){m->terminate = true;}},
+	{op_t::OUT,     [](machine *m){std::cout << m->stack.top() << '\n';}},
 
 	{op_t::DROP,  [](machine* m){m->stack.pop();}},
 	{op_t::DUP,   [](machine* m){m->stack.push(m->stack.top());}},
