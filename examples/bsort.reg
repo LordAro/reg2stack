@@ -35,26 +35,26 @@ SET [0x301f], 29832
 SET [0x2fff], 32 ; length
 
 ; sort
-        SET J, [0x2fff]
-:LOOP   SUB J, 1
-        SET I, 0
-:LOOP2  SET A, [0x3000+I]
-		SET B, [0x3000+J]
-        IFG A, B ; compare
-		  SET PC, SWAP
-        SET PC, POST
-:SWAP   SET C, [0x3000+I]
-		SET [0x3000+I], [0x3000+J]
-		SET [0x3000+J], C
-:POST   ADD I, 1
-        IFG J, I
-          SET PC, LOOP2
-	    IFN J, 0
-          SET PC, LOOP
+SET J, [0x2fff]
+:LOOP SUB J, 1
+	SET I, 0
+:LOOP2 SET A, [0x3000+I]
+	SET B, [0x3000+J]
+	IFG A, B ; compare
+		SET PC, SWAP
+	SET PC, POST
+:SWAP SET C, [0x3000+I]
+	SET [0x3000+I], [0x3000+J]
+	SET [0x3000+J], C
+:POST ADD I, 1
+	IFG J, I
+		SET PC, LOOP2
+	IFN J, 0
+		SET PC, LOOP
 
 ; output result
-       SET I, 0
-:RESL  OUT [0x3000+I]
-       ADD I, 1
-	   IFN I, [0x2fff]
-	     SET PC, RESL
+SET I, 0
+:RESL OUT [0x3000+I]
+	ADD I, 1
+	IFN I, [0x2fff]
+		SET PC, RESL
