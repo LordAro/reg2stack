@@ -137,6 +137,8 @@ private:
 	bool terminate;
 	program cur_prog;
 
+	void run_instruction(const instruction &ins);
+
 	uint16_t find_label(const std::string &l);
 
 	using opfunc_t = std::function<void(machine*)>;

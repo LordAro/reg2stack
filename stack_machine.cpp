@@ -93,6 +93,53 @@ uint16_t machine::find_label(const std::string &l)
 	return std::distance(this->cur_prog.begin(), pos);
 }
 
+void machine::run_instruction(const instruction &ins)
+{
+	if ((ins.code == op_t::SET || ins.code == op_t::BRANCH
+			|| ins.code == op_t::BRZERO || ins.code == op_t::IBRANCH)
+			&& ins.op.which() == 0) {
+		throw "Missing operand for " + OP_T_STR.at((size_t)ins.code);
+	}
+
+	switch (ins.code) {
+		case op_t::SET:
+			if (ins.op.which() != 1) {
+				throw "Tried to SET to a label";
+			}
+			this->set_func(boost::get<uint16_t>(ins.op));
+			break;
+		case op_t::BRZERO:
+			if (!HasBit(this->flags, static_cast<uint8_t>(machine::flagbit::ZERO))) {
+				break;
+			}
+			ClrBit(this->flags, static_cast<uint8_t>(machine::flagbit::ZERO));
+			/* FALLTHROUGH */
+		case op_t::BRANCH:
+			if (ins.op.which() == 1) {
+				this->pc += boost::get<uint16_t>(ins.op); // relative if number
+			} else {
+				this->pc = this->find_label(boost::get<std::string>(ins.op));
+			}
+			this->pc -= 1; // for postincrement
+			break;
+		case op_t::IBRANCH: // absolute
+			if (ins.op.which() == 1) {
+				this->pc = boost::get<uint16_t>(ins.op);
+			} else {
+				this->pc = this->find_label(boost::get<std::string>(ins.op));
+			}
+			this->pc -= 1; // for postincrement
+			break;
+		default:
+			try {
+				auto func = OPERATIONS.at(ins.code);
+				func(this);
+			} catch (std::out_of_range) {
+				throw "Unrecognised instruction " + OP_T_STR.at((size_t)ins.code);
+			}
+	}
+}
+
 void machine::run(const program &prog, bool verbose, bool speedlimit)
 {
 	this->cur_prog = prog;
@@ -103,54 +150,7 @@ void machine::run(const program &prog, bool verbose, bool speedlimit)
 
 		const auto &ins = this->cur_prog[pc];
 		std::cerr << ins << '\n';
-
-		if (ins.code == op_t::SET || ins.code == op_t::BRANCH
-				|| ins.code == op_t::BRZERO || ins.code == op_t::IBRANCH) {
-
-			if (ins.op.which() == 0) {
-				throw "Missing operand for " + OP_T_STR.at((size_t)ins.code);
-			}
-
-			switch (ins.code) {
-				case op_t::SET:
-					if (ins.op.which() != 1) {
-						throw "Tried to SET to a label";
-					}
-					this->set_func(boost::get<uint16_t>(ins.op));
-					break;
-				case op_t::BRZERO:
-					if (!HasBit(this->flags, static_cast<uint8_t>(machine::flagbit::ZERO))) {
-						break;
-					}
-					ClrBit(this->flags, static_cast<uint8_t>(machine::flagbit::ZERO));
-					/* FALLTHROUGH */
-				case op_t::BRANCH:
-					if (ins.op.which() == 1) {
-						this->pc += boost::get<uint16_t>(ins.op); // relative if number
-					} else {
-						this->pc = this->find_label(boost::get<std::string>(ins.op));
-					}
-					this->pc -= 1; // for postincrement
-					break;
-				case op_t::IBRANCH: // absolute
-					if (ins.op.which() == 1) {
-						this->pc = boost::get<uint16_t>(ins.op);
-					} else {
-						this->pc = this->find_label(boost::get<std::string>(ins.op));
-					}
-					this->pc -= 1; // for postincrement
-					break;
-				default:
-					throw "Not reached";
-			}
-		} else {
-			try {
-				auto func = OPERATIONS.at(ins.code);
-				func(this);
-			} catch (std::out_of_range) {
-				throw "Unrecognised instruction " + OP_T_STR.at((size_t)ins.code);
-			}
-		}
+		this->run_instruction(ins);
 
 		if (verbose) std::cout << this->register_dump() << '\n';
 		if (speedlimit) {
