@@ -9,6 +9,7 @@
 using prog_snippet = std::vector<j5::instruction>;
 
 j5::program reg2stack(dcpu16::program p);
+prog_snippet convert_instruction(const dcpu16::instruction &r);
 
 prog_snippet index_on_stack(dcpu16::operand_t x);
 prog_snippet address_on_stack(dcpu16::operand_t x);

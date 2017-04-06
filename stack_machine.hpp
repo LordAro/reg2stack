@@ -117,7 +117,7 @@ public:
 	void run(const program &prog, bool verbose, bool speedlimit);
 	std::string register_dump();
 
-private:
+protected:
 	uint16_t pc;
 	std::stack<uint16_t> stack;
 	std::array<uint16_t, 0x10000> mem;
@@ -137,9 +137,10 @@ private:
 	bool terminate;
 	program cur_prog;
 
-	void run_instruction(const instruction &ins);
+	uint16_t run_instruction(const instruction &ins);
+	uint16_t run_branch_instruction(const instruction &ins);
 
-	uint16_t find_label(const std::string &l);
+	virtual uint16_t find_label(const std::string &l);
 
 	using opfunc_t = std::function<void(machine*)>;
 	using op_map = std::map<op_t, opfunc_t>;

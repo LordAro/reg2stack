@@ -5,6 +5,7 @@
 #include <thread>
 
 #include "stack_machine.hpp"
+#include "register_convert.hpp"
 #include "util.hpp"
 
 namespace j5 {
@@ -93,12 +94,8 @@ uint16_t machine::find_label(const std::string &l)
 	return std::distance(this->cur_prog.begin(), pos);
 }
 
-void machine::run_instruction(const instruction &ins)
+uint16_t machine::run_branch_instruction(const instruction &ins)
 {
-	if ((ins.code == op_t::SET || ins.code == op_t::BRANCH || ins.code == op_t::BRZERO) && ins.op.which() == 0) {
-		throw "Missing operand for " + OP_T_STR.at((size_t)ins.code);
-	}
-
 	switch (ins.code) {
 		case op_t::SET:
 			if (ins.op.which() != 1) {
@@ -114,20 +111,37 @@ void machine::run_instruction(const instruction &ins)
 			/* FALLTHROUGH */
 		case op_t::BRANCH:
 			if (ins.op.which() == 1) {
-				this->pc += boost::get<uint16_t>(ins.op); // relative if number
+				return this->pc + boost::get<uint16_t>(ins.op); // relative if number
 			} else {
-				this->pc = this->find_label(boost::get<std::string>(ins.op));
+				return this->find_label(boost::get<std::string>(ins.op));
 			}
-			this->pc -= 1; // for postincrement
-			break;
 		default:
-			try {
-				auto func = OPERATIONS.at(ins.code);
-				func(this);
-			} catch (std::out_of_range) {
-				throw "Unrecognised instruction " + OP_T_STR.at((size_t)ins.code);
-			}
+			throw "Not reached";
 	}
+	return this->pc + 1;
+}
+
+/**
+ * Runs an instruction on the stack machine
+ * @param ins Instruction to run
+ * @return New value of program counter
+ */
+uint16_t machine::run_instruction(const instruction &ins)
+{
+	if (ins.code == op_t::SET || ins.code == op_t::BRANCH || ins.code == op_t::BRZERO) {
+		if (ins.op.which() == 0) {
+			throw "Missing operand for " + OP_T_STR.at((size_t)ins.code);
+		}
+		return this->run_branch_instruction(ins);
+	}
+
+	try {
+		auto func = OPERATIONS.at(ins.code);
+		func(this);
+	} catch (std::out_of_range) {
+		throw "Unrecognised instruction " + OP_T_STR.at((size_t)ins.code);
+	}
+	return this->pc + 1;
 }
 
 void machine::run(const program &prog, bool verbose, bool speedlimit)
@@ -135,12 +149,12 @@ void machine::run(const program &prog, bool verbose, bool speedlimit)
 	this->cur_prog = prog;
 	this->terminate = false;
 
-	for (; !this->terminate && this->pc < this->cur_prog.size(); this->pc++) {
+	while (!this->terminate && this->pc < this->cur_prog.size()) {
 		auto start = std::chrono::high_resolution_clock::now();
 
 		const auto &ins = this->cur_prog[pc];
 		std::cerr << ins << '\n';
-		this->run_instruction(ins);
+		this->pc = this->run_instruction(ins);
 
 		if (verbose) std::cout << this->register_dump() << '\n';
 		if (speedlimit) {

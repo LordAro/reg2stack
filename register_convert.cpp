@@ -179,7 +179,7 @@ prog_snippet if_snippet(const dcpu16::instruction &ins, j5::op_t test_op, bool s
  * @param r Register instruction.
  * @return List of stack instructions equivalent to the register instruction.
  */
-prog_snippet instruction_convert(const dcpu16::instruction &r)
+prog_snippet convert_instruction(const dcpu16::instruction &r)
 {
 	using namespace std::placeholders;
 
@@ -210,7 +210,7 @@ j5::program reg2stack(dcpu16::program p)
 {
 	std::vector<j5::program> snippets;
 	for (const auto &i : p) {
-		auto snippet = instruction_convert(i);
+		auto snippet = convert_instruction(i);
 
 		/* Deal with generated BRZERO from if statements
 		 * requiring the length of the next instruction */

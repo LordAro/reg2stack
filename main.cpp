@@ -5,7 +5,7 @@
 
 #include "register_machine.hpp"
 #include "stack_machine.hpp"
-#include "register_convert.hpp"
+#include "stackconvert_machine.hpp"
 
 std::string readFile(const std::string &filename)
 {
@@ -110,8 +110,8 @@ int main(int argc, char **argv)
 				if (verbose) {
 					for (const auto &ins : prog) std::cout << ins << "\n";
 				}
-				auto stack_prog = reg2stack(prog);
-				for (const auto &i : stack_prog) std::cout << i << '\n';
+				convertmachine mach;
+				mach.run_reg(prog, verbose, speedlimit);
 				break;
 			}
 		}
