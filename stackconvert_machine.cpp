@@ -9,6 +9,7 @@ void convertmachine::run_reg(const dcpu16::program &prog, bool verbose, bool spe
 {
 	this->terminate = false;
 	bool skip_next = false;
+	this->snippet_cache.resize(prog.size());
 	this->reg_prog = prog;
 	this->pc = 0;
 	for (; !this->terminate && this->pc < prog.size(); this->pc++) {
@@ -18,7 +19,13 @@ void convertmachine::run_reg(const dcpu16::program &prog, bool verbose, bool spe
 		}
 		auto start = std::chrono::high_resolution_clock::now();
 
-		auto snippet = convert_instruction(prog.at(this->pc));
+
+		auto snippet = this->snippet_cache.at(this->pc);
+		if (snippet.empty()) {
+			std::cerr << "Caching " << prog.at(this->pc) << '\n';
+			snippet = convert_instruction(prog.at(this->pc));
+			this->snippet_cache.at(this->pc) = snippet;
+		}
 
 		std::cerr << prog.at(this->pc) << '\n';
 		for (const auto &i : snippet) {
