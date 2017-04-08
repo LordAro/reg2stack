@@ -10,9 +10,9 @@ FILEPATH = 'examples/{}.{}'
 
 REGISTER_PROGS = ['test1', 'test2', 'bsort']
 STACK_PROGS = ['loop']
-CONVERSIONS = ['simple', 'loop', 'bsort']
+CONVERSIONS = ['simple', 'loop', 'bsort', 'fib20']
 
-def get_prog(name, typerun, conv=False):
+def get_prog(name, typerun):
     """Builds the list of commandline args for a test program
     """
     args = ['./reg2stack', '-f']
@@ -23,7 +23,7 @@ def get_prog(name, typerun, conv=False):
     if typerun == 'r' or typerun == 'c':
         filename = FILEPATH.format(name, 'reg')
     elif typerun == 's':
-        filename = FILEPATH.format(name, 'stack' if not conv else 'gen.stack')
+        filename = FILEPATH.format(name, 'stack')
     args.append(filename)
     return args
 
@@ -44,27 +44,16 @@ for p in STACK_PROGS:
 print()
 
 for p in CONVERSIONS:
-    # reg
-    prog = get_prog(p, 'r')
+    prog = get_prog(p, 'r') # reg
     retreg = subprocess.run(prog, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, check=True)
 
-    # conv
-    prog = get_prog(p, 'c')
+    prog = get_prog(p, 'c') # conv
     print('Converting', ' '.join(prog))
     retconv = subprocess.run(prog, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
-    if retconv.returncode != 0:
-        print('Error converting:')
-        print(retconv.stderr)
-        continue
-
-    with open(FILEPATH.format(p, 'gen.stack'), 'wb') as f:
-        f.write(retconv.stdout)
-    prog = get_prog(p, 's', conv=True)
-    retstack = subprocess.run(prog, stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE, check=True)
-    print(retreg.stdout)
-    if retreg.stdout != retstack.stdout:
+    if retreg.stdout != retconv.stdout:
         print('Result not equal!')
-        print(retreg.stdout, '!=', retstack.stdout)
+        print(retreg.stdout, '!=', retconv.stdout)
+    else:
+        print(retconv.stdout)
