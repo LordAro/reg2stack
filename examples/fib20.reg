@@ -1,0 +1,16 @@
+SET [0x2000], 20 ; limit
+
+SET A, 0 ; F(0)
+SET B, 1 ; F(1)
+
+OUT A
+OUT B
+
+SET I, 1
+:LOOP SET C, A
+	SET A, B
+	ADD B, C
+	OUT B
+	ADD I, 1
+	IFN I, [0x2000]
+		SET PC, LOOP
