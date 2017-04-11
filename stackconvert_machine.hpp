@@ -1,8 +1,8 @@
 #ifndef STACKCONVERT_MACHINE_HPP
 #define STACKCONVERT_MACHINE_HPP
 
+#include <map>
 #include <string>
-#include <vector>
 
 #include "register_machine.hpp"
 #include "stack_machine.hpp"
@@ -14,7 +14,7 @@ private:
 	uint16_t find_label(const std::string &l) override;
 	dcpu16::program reg_prog;
 
-	std::vector<j5::program> snippet_cache;
+	std::map<size_t, std::vector<j5::program>> section_cache;
 };
 
 #endif /* STACKCONVERT_MACHINE_HPP */

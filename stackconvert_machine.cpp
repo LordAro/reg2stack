@@ -8,67 +8,64 @@
 void convertmachine::run_reg(const dcpu16::program &prog, bool verbose, bool speedlimit)
 {
 	this->terminate = false;
-	bool skip_next = false;
-	this->snippet_cache.resize(prog.size());
 	this->reg_prog = prog;
+	size_t skip = 0;
 	this->pc = 0;
-	for (; !this->terminate && this->pc < prog.size(); this->pc++) {
-		if (skip_next) {
-			skip_next = false;
-			continue;
-		}
+	while (!this->terminate && this->pc < prog.size()) {
 		auto start = std::chrono::high_resolution_clock::now();
 
-
-		auto snippet = this->snippet_cache.at(this->pc);
-		if (snippet.empty()) {
-			std::cerr << "Caching " << prog.at(this->pc) << '\n';
-			snippet = convert_instruction(prog.at(this->pc));
-			this->snippet_cache.at(this->pc) = snippet;
+		std::vector<prog_snippet> snippet;
+		auto section_it = this->section_cache.find(this->pc);
+		if (section_it != this->section_cache.end()) {
+			snippet = section_it->second;
+		} else {
+			// find end of section (next label)
+			auto next_label = std::find_if(
+				this->reg_prog.begin() + this->pc + 1,
+				this->reg_prog.end(),
+				[](const dcpu16::instruction &i){return !i.label.empty();}
+			);
+			if (verbose) {
+				std::cout << "# Caching "
+				          << this->reg_prog.at(this->pc)
+				          << "(+"
+			              << std::distance(this->reg_prog.begin() + this->pc, next_label)
+				          << ")\n";
+			}
+			snippet = convert_instructions(this->reg_prog.begin() + this->pc, next_label);
+			this->section_cache[this->pc] = snippet;
 		}
 
 		std::cerr << prog.at(this->pc) << '\n';
-		for (const auto &i : snippet) {
-			std::cerr << '\t' << i << '\n';
-			// Override BRZERO
-			if (i.code == j5::op_t::BRZERO
-					&& HasBit(this->flags, static_cast<uint8_t>(machine::flagbit::ZERO))) {
-				assert(boost::get<uint16_t>(i.op) == 2);
-				skip_next = true;
-				continue;
-			}
-			auto new_pc = this->run_instruction(i);
-			switch (i.code) {
-				case j5::op_t::BRANCH:
-					this->pc = new_pc - 1;
+		for (size_t start_pc = this->pc; this->pc - start_pc < snippet.size(); this->pc++) {
+			const auto &snip = snippet.at(this->pc - start_pc);
+			for (const auto &i : snip) {
+				if (skip > 0) {
+					skip--;
+					continue;
+				}
+				std::cerr << '\t' << i << '\n';
+				// Override BRZERO
+				if (i.code == j5::op_t::BRZERO
+						&& HasBit(this->flags, static_cast<uint8_t>(machine::flagbit::ZERO))) {
+					ClrBit(this->flags, static_cast<uint8_t>(machine::flagbit::ZERO));
+					skip = boost::get<uint16_t>(i.op) - 1;
+					continue;
+				}
+
+				auto new_pc = this->run_instruction(i);
+
+				if (verbose) std::cout << this->register_dump() << '\n';
+				// branch specials
+				if (i.code == j5::op_t::BRANCH) {
+					this->pc = new_pc - 1; // postinc
 					break;
-				default:
-					break;
+				}
 			}
+			if (verbose) std::cout << '\n';
 		}
+		if (verbose) std::cout << '\n';
 
-		/* Deal with generated BRZERO from if statements
-		 * requiring the length of the next instruction */
-		/*if (reg_pc > 0) {
-			auto &last = prog.at(reg_pc - 1);
-			if (dcpu16::is_if_code(last.code)) {
-
-				brzero_idx->op = snippet.size() + 1 + 2;
-			}
-			auto brzero_idx = std::find_if(last.begin(), last.end(),
-					[](const j5::instruction &i){return i.code == j5::op_t::BRZERO;});
-		}
-		// TODO: Look at p instead of snippets?
-		if (snippets.size() != 0) {
-			auto &last = snippets.back();
-			auto brzero_idx = std::find_if(last.begin(), last.end(),
-					[](const j5::instruction &i){return i.code == j5::op_t::BRZERO;});
-			if (brzero_idx != last.end()) {
-				brzero_idx->op = snippet.size() + 1 + 2;
-			}
-		}*/
-
-		if (verbose) std::cout << this->register_dump() << '\n';
 		if (speedlimit) {
 			std::this_thread::sleep_until(start + std::chrono::milliseconds(100)); // arbitrary
 		}
