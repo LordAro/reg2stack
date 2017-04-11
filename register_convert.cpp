@@ -165,11 +165,11 @@ prog_snippet if_snippet(const dcpu16::instruction &ins, j5::op_t test_op, bool s
 
 	ret.emplace_back(j5::make_instruction(test_op));
 
+	ret.emplace_back(j5::make_instruction(j5::op_t::DROP));
+	ret.emplace_back(j5::make_instruction(j5::op_t::DROP));
 	/* Actual length is handled in the main loop, as this
 	 * requires the generated length of the next instruction. */
 	ret.emplace_back(j5::make_instruction(j5::op_t::BRZERO, 2));
-	ret.emplace_back(j5::make_instruction(j5::op_t::DROP));
-	ret.emplace_back(j5::make_instruction(j5::op_t::DROP));
 	return ret;
 }
 
