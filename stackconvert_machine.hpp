@@ -14,7 +14,7 @@ private:
 	uint16_t find_label(const std::string &l) override;
 	dcpu16::program reg_prog;
 
-	std::map<size_t, std::vector<j5::program>> section_cache;
+	std::map<size_t, std::pair<j5::program, uint16_t>> section_cache;
 };
 
 #endif /* STACKCONVERT_MACHINE_HPP */

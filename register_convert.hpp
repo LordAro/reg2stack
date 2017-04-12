@@ -11,7 +11,7 @@ using prog_snippet = std::vector<j5::instruction>;
 j5::program reg2stack(dcpu16::program p);
 prog_snippet convert_instruction(const dcpu16::instruction &r);
 template<typename It>
-std::vector<prog_snippet> convert_instructions(It begin, It end)
+prog_snippet convert_instructions(It begin, It end)
 {
 	std::vector<prog_snippet> snippets;
 	for (auto it = begin; it != end; ++it) {
@@ -28,7 +28,10 @@ std::vector<prog_snippet> convert_instructions(It begin, It end)
 		}
 		snippets.push_back(snippet);
 	}
-	return snippets;
+	/* Flatten */
+	prog_snippet ret;
+	for (const auto & snip : snippets) ret.insert(ret.end(), snip.begin(), snip.end());
+	return ret;
 }
 
 prog_snippet index_on_stack(dcpu16::operand_t x);
