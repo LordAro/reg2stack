@@ -1,11 +1,12 @@
 #include <iostream>
 #include <thread>
 
+#include "optimise.hpp"
 #include "register_convert.hpp"
 #include "stackconvert_machine.hpp"
 #include "util.hpp"
 
-void convertmachine::run_reg(const dcpu16::program &prog, bool verbose, bool speedlimit)
+void convertmachine::run_reg(const dcpu16::program &prog, bool verbose, bool speedlimit, bool optimise)
 {
 	this->terminate = false;
 	this->reg_prog = prog;
@@ -33,6 +34,7 @@ void convertmachine::run_reg(const dcpu16::program &prog, bool verbose, bool spe
 				std::cout << "# Caching " << this->reg_prog.at(reg_pc) << " (" <<  distance << ")\n";
 			}
 			snippet = convert_instructions(this->reg_prog.begin() + reg_pc, next_label);
+			if (optimise) snippet = optimise_instructions(snippet);
 			this->section_cache[reg_pc] = {snippet, distance};
 		}
 

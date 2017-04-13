@@ -9,7 +9,7 @@
 
 class convertmachine : j5::machine {
 public:
-	void run_reg(const dcpu16::program &prog, bool verbose, bool speedlimit);
+	void run_reg(const dcpu16::program &prog, bool verbose, bool speedlimit, bool optimise);
 private:
 	uint16_t find_label(const std::string &l) override;
 	dcpu16::program reg_prog;

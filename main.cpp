@@ -46,10 +46,11 @@ int main(int argc, char **argv)
 {
 	bool verbose = false;
 	bool speedlimit = true;
+	bool optimise = false;
 	mode m;
 	const char *filepath = "";
 	int c = 0;
-	while ((c = getopt(argc, argv, "hfvc:s:r:")) != -1) {
+	while ((c = getopt(argc, argv, "hfvoc:s:r:")) != -1) {
 		switch (c) {
 			case 'v':
 				verbose = true;
@@ -68,6 +69,9 @@ int main(int argc, char **argv)
 				break;
 			case 'f':
 				speedlimit = false;
+				break;
+			case 'o':
+				optimise = true;
 				break;
 			case 'h':
 				printUsage(argv[0]);
@@ -111,7 +115,7 @@ int main(int argc, char **argv)
 					for (const auto &ins : prog) std::cout << ins << "\n";
 				}
 				convertmachine mach;
-				mach.run_reg(prog, verbose, speedlimit);
+				mach.run_reg(prog, verbose, speedlimit, optimise);
 				break;
 			}
 		}
