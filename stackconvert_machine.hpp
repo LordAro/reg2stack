@@ -9,12 +9,13 @@
 
 class convertmachine : j5::machine {
 public:
-	void run_reg(const dcpu16::program &prog, bool verbose, bool speedlimit, bool optimise);
+	void run_reg(const dcpu16::program &prog, bool verbose, bool speedlimit, size_t optimise);
 private:
+	std::pair<j5::program, uint16_t> get_snippet(uint16_t reg_pc, size_t optimise, bool verbose);
 	uint16_t find_label(const std::string &l) override;
 	dcpu16::program reg_prog;
 
-	std::map<size_t, std::pair<j5::program, uint16_t>> section_cache;
+	std::map<uint16_t, std::pair<j5::program, uint16_t>> section_cache;
 };
 
 #endif /* STACKCONVERT_MACHINE_HPP */

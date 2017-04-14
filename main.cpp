@@ -24,15 +24,17 @@ void printUsage(const char *arg0)
 		"%s - an interpreter of some sort.\n"
 		"Does something with stacks\n"
 		"\n"
-		"Usage: %s [-v] [-f] [-scr] file\n"
+		"Usage: %s [-v] [-f] [-o num] [-scr] file\n"
 		"\n"
-		"-v    -  Verbose output\n"
-		"-f    -  Fast speed\n"
-		"-c    -  Convert register code\n"
-		"-s    -  Stack (J5) interpreter\n"
-		"-r    -  Register (DCPU-16) interpreter\n"
-		"-h    -  This help text\n"
-		"file  -  ASM source file to run\n";
+		"-v      -  Verbose output\n"
+		"-f      -  Fast speed\n"
+		"-o num  -  Only has affect with -c. Level 1 indicates single\n"
+		"           peephole pass, Level 2 does Koopman-style optimisation\n"
+		"-c      -  Convert register code\n"
+		"-s      -  Stack (J5) interpreter\n"
+		"-r      -  Register (DCPU-16) interpreter\n"
+		"-h      -  This help text\n"
+		"file    -  ASM source file to run\n";
 	printf(USAGE, arg0, arg0);
 }
 
@@ -46,11 +48,11 @@ int main(int argc, char **argv)
 {
 	bool verbose = false;
 	bool speedlimit = true;
-	bool optimise = false;
+	size_t optimise = 0;
 	mode m;
 	const char *filepath = "";
 	int c = 0;
-	while ((c = getopt(argc, argv, "hfvoc:s:r:")) != -1) {
+	while ((c = getopt(argc, argv, "hfvo:c:s:r:")) != -1) {
 		switch (c) {
 			case 'v':
 				verbose = true;
@@ -71,7 +73,7 @@ int main(int argc, char **argv)
 				speedlimit = false;
 				break;
 			case 'o':
-				optimise = true;
+				optimise = atoi(optarg);
 				break;
 			case 'h':
 				printUsage(argv[0]);

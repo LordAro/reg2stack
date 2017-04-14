@@ -6,7 +6,37 @@
 #include "stackconvert_machine.hpp"
 #include "util.hpp"
 
-void convertmachine::run_reg(const dcpu16::program &prog, bool verbose, bool speedlimit, bool optimise)
+/* Get cached instruction snippet, if it exists. Otherwise create it */
+std::pair<j5::program, uint16_t> convertmachine::get_snippet(uint16_t reg_pc, size_t optimise, bool verbose)
+{
+	auto section_it = this->section_cache.find(reg_pc);
+	if (section_it != this->section_cache.end()) {
+		return section_it->second;
+	}
+
+	// find end of section (next label)
+	auto next_label = std::find_if(
+		this->reg_prog.begin() + reg_pc + 1,
+		this->reg_prog.end(),
+		[](const dcpu16::instruction &i){return !i.label.empty();}
+	);
+	uint16_t distance = std::distance(this->reg_prog.begin() + reg_pc, next_label);
+	if (verbose) {
+		std::cout << "# Caching " << this->reg_prog.at(reg_pc)
+		          << " (" <<  distance << ")\n";
+	}
+	j5::program snippet = convert_instructions(this->reg_prog.begin() + reg_pc, next_label);
+	if (optimise >= 1) {
+		snippet = peephole_optimise(snippet);
+	}
+	if (optimise >= 2 && is_koopman(snippet)) { // koopman
+		snippet = peephole_optimise(snippet); // peephole again
+	}
+	this->section_cache[reg_pc] = {snippet, distance};
+	return this->section_cache[reg_pc];
+}
+
+void convertmachine::run_reg(const dcpu16::program &prog, bool verbose, bool speedlimit, size_t optimise)
 {
 	this->terminate = false;
 	this->reg_prog = prog;
@@ -15,28 +45,9 @@ void convertmachine::run_reg(const dcpu16::program &prog, bool verbose, bool spe
 	for (uint16_t reg_pc = 0; !this->terminate && reg_pc < this->reg_prog.size();) {
 		auto start = std::chrono::high_resolution_clock::now();
 
-		/* Get cached instruction snippet, if it exists. Otherwise create it */
 		j5::program snippet;
-		uint16_t distance = 0;
-		auto section_it = this->section_cache.find(reg_pc);
-		if (section_it != this->section_cache.end()) {
-			snippet = section_it->second.first;
-			distance = section_it->second.second;
-		} else {
-			// find end of section (next label)
-			auto next_label = std::find_if(
-				this->reg_prog.begin() + reg_pc + 1,
-				this->reg_prog.end(),
-				[](const dcpu16::instruction &i){return !i.label.empty();}
-			);
-			distance = std::distance(this->reg_prog.begin() + reg_pc, next_label);
-			if (verbose) {
-				std::cout << "# Caching " << this->reg_prog.at(reg_pc) << " (" <<  distance << ")\n";
-			}
-			snippet = convert_instructions(this->reg_prog.begin() + reg_pc, next_label);
-			if (optimise) snippet = optimise_instructions(snippet);
-			this->section_cache[reg_pc] = {snippet, distance};
-		}
+		uint16_t distance;
+		std::tie(snippet, distance) = get_snippet(reg_pc, optimise, verbose);
 
 		/* Run instruction snippet */
 		std::cerr << prog.at(reg_pc) << '\n';
@@ -75,7 +86,7 @@ void convertmachine::run_reg(const dcpu16::program &prog, bool verbose, bool spe
 		if (verbose) std::cout << '\n';
 
 		if (speedlimit) {
-			std::this_thread::sleep_until(start + std::chrono::milliseconds(100)); // arbitrary
+			std::this_thread::sleep_until(start + (std::chrono::milliseconds(100) * distance)); // arbitrary
 		}
 		reg_pc += distance;
 	}
