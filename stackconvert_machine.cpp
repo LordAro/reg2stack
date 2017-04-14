@@ -6,6 +6,13 @@
 #include "stackconvert_machine.hpp"
 #include "util.hpp"
 
+bool is_koopman(const j5::program &snip)
+{
+	return snip.back().code == j5::op_t::BRANCH
+		&& boost::get<std::string>(snip.back().op) == snip.front().label;
+	// TODO: also check for no labels in between front and back?
+}
+
 /* Get cached instruction snippet, if it exists. Otherwise create it */
 std::pair<j5::program, uint16_t> convertmachine::get_snippet(uint16_t reg_pc, size_t optimise, bool verbose)
 {
@@ -30,6 +37,7 @@ std::pair<j5::program, uint16_t> convertmachine::get_snippet(uint16_t reg_pc, si
 		snippet = peephole_optimise(snippet);
 	}
 	if (optimise >= 2 && is_koopman(snippet)) { // koopman
+		snippet = stack_schedule(snippet);
 		snippet = peephole_optimise(snippet); // peephole again
 	}
 	this->section_cache[reg_pc] = {snippet, distance};
