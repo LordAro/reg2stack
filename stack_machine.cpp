@@ -209,8 +209,8 @@ std::string machine::register_dump()
 	{op_t::SWAP,  &machine::swap_func},
 	{op_t::RSD3,  &machine::rsd3_func},
 	{op_t::RSU3,  &machine::rsu3_func},
-//	{op_t::TUCK2, [](machine *m){m->terminate = true;}},
-//	{op_t::TUCK3, [](machine *m){m->terminate = true;}},
+	{op_t::TUCK2, &machine::tuck2_func},
+	{op_t::TUCK3, &machine::tuck3_func},
 	{op_t::COPY3, &machine::copy3_func},
 	// PUSH,POP special
 }};
@@ -276,6 +276,31 @@ void machine::testzero_func()
 	} else {
 		ClrBit(this->flags, static_cast<uint8_t>(machine::flagbit::ZERO));
 	}
+}
+
+void machine::tuck2_func()
+{
+	uint16_t top = this->stack.top();
+	this->stack.pop();
+	uint16_t next = this->stack.top();
+	this->stack.pop();
+	this->stack.push(top);
+	this->stack.push(next);
+	this->stack.push(top);
+}
+
+void machine::tuck3_func()
+{
+	uint16_t top = this->stack.top();
+	this->stack.pop();
+	uint16_t next = this->stack.top();
+	this->stack.pop();
+	uint16_t third = this->stack.top();
+	this->stack.pop();
+	this->stack.push(top);
+	this->stack.push(third);
+	this->stack.push(next);
+	this->stack.push(top);
 }
 
 void machine::rsu3_func()
