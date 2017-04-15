@@ -221,6 +221,8 @@ void machine::run(const program &prog, bool speedlimit)
 				break;
 			// Bin ops
 			case op_t::SET:
+				if (ins.b == ins.a && ins.b.which() == 1 && boost::get<reg_t>(ins.b) == reg_t::PC) this->terminate = true;
+				/* FALLTHROUGH */
 			case op_t::ADD:
 			case op_t::SUB:
 			case op_t::MUL:

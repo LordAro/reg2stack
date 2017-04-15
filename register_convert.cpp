@@ -94,8 +94,12 @@ prog_snippet set_snippet(const dcpu16::instruction &ins)
 {
 	// SET PC, x is special
 	// TODO: handle numeric (& +/-??)
-	if (ins.b.which() == 1 && boost::get<dcpu16::reg_t>(ins.b) == dcpu16::reg_t::PC && ins.a.which() == 0) {
-		return {j5::make_instruction(j5::op_t::BRANCH, boost::get<std::string>(ins.a))};
+	if (ins.b.which() == 1 && boost::get<dcpu16::reg_t>(ins.b) == dcpu16::reg_t::PC) {
+		if (ins.a.which() == 0) {
+			return {j5::make_instruction(j5::op_t::BRANCH, boost::get<std::string>(ins.a))};
+		} else if (ins.a.which() == 1 && boost::get<dcpu16::reg_t>(ins.a) == dcpu16::reg_t::PC) { // SET PC, PC
+			return {j5::make_instruction(j5::op_t::STOP)};
+		}
 	}
 
 	if (ins.b.which() == 2) return {}; // setting to literal == nop
