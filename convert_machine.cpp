@@ -21,7 +21,7 @@ std::pair<j5::program, uint16_t> convertmachine::get_snippet(uint16_t reg_pc, si
 		[](const dcpu16::instruction &i){return !i.label.empty();}
 	);
 	uint16_t distance = std::distance(this->reg_prog.begin() + reg_pc, next_label);
-	log<LOG_DEBUG>("# Caching ", this->reg_prog.at(reg_pc), " (",  distance, ")");
+	log<LOG_DEBUG2>("# Caching ", this->reg_prog.at(reg_pc), " (",  distance, ")");
 	j5::program snippet = convert_instructions(this->reg_prog.begin() + reg_pc, next_label);
 	if (optimise >= 1) {
 		snippet = peephole_optimise(snippet);
@@ -50,11 +50,11 @@ void convertmachine::run_reg(const dcpu16::program &prog, bool speedlimit, size_
 
 		/* Run instruction snippet */
 		for (size_t start_pc = this->pc;  this->pc - start_pc < snippet.size(); this->pc++) {
-			const auto &i = snippet.at(this->pc - start_pc);
 			if (skip > 0) {
 				skip--;
 				continue;
 			}
+			const auto &i = snippet.at(this->pc - start_pc);
 			log<LOG_DEBUG>('\t', i);
 			auto new_pc = this->run_instruction(i);
 

@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "optimise.hpp"
+#include "util.hpp"
 
 j5::program optimise_addone(j5::program prog)
 {
@@ -46,7 +47,7 @@ j5::program optimise_testzero(j5::program prog)
 
 j5::program optimise_storeload(j5::program prog)
 {
-	for (size_t i = 0; i < prog.size() - 3; i++) {
+	for (size_t i = 0; prog.size() > 3 && i < prog.size() - 3; i++) {
 		auto &a = prog[i];
 		auto &b = prog[i + 1];
 		auto &c = prog[i + 2];
@@ -88,7 +89,7 @@ j5::program stack_schedule(j5::program prog)
 			});
 			if (stack_depth > 2) continue;
 
-			std::cout << "Found pair: " << prog[i] << ',' << prog[i+1] << "->" << prog[j] << ',' << prog[j+1] << " - distance: " << j-i << '\n';
+			log<LOG_DEBUG2>("Found pair: ", prog[i], ',', prog[i+1], "->", prog[j], ',', prog[j+1], " - distance: ", j-i);
 			pairs.push_back({i, j});
 
 			j5::op_t ins;
