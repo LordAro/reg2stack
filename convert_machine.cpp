@@ -43,12 +43,12 @@ void convertmachine::run_reg(const dcpu16::program &prog, bool speedlimit, size_
 	for (uint16_t reg_pc = 0; !this->terminate && reg_pc < this->reg_prog.size();) {
 		auto start = std::chrono::high_resolution_clock::now();
 
+		log<LOG_DEBUG>(prog.at(reg_pc));
 		j5::program snippet;
 		uint16_t distance;
 		std::tie(snippet, distance) = get_snippet(reg_pc, optimise);
 
 		/* Run instruction snippet */
-		log<LOG_DEBUG>(prog.at(reg_pc));
 		for (size_t start_pc = this->pc;  this->pc - start_pc < snippet.size(); this->pc++) {
 			const auto &i = snippet.at(this->pc - start_pc);
 			if (skip > 0) {
@@ -66,13 +66,17 @@ void convertmachine::run_reg(const dcpu16::program &prog, bool speedlimit, size_
 					skip = new_pc - this->pc - 1; // get rid of relative
 					break;
 				case j5::op_t::BRANCH: {
-					std::string branch_label = boost::get<std::string>(i.op);
-					if (snippet.begin()->label == branch_label) {
-						// label is in current snippet
-						this->pc = start_pc - 1; // loop
+					if (i.op.which() == 1) {
+						skip = new_pc - this->pc - 1;
 					} else {
-						reg_pc = new_pc - distance; // postinc
-						breakout = true;
+						std::string branch_label = boost::get<std::string>(i.op);
+						if (snippet.begin()->label == branch_label) {
+							// label is in current snippet
+							this->pc = start_pc - 1; // loop
+						} else {
+							reg_pc = new_pc - distance; // postinc
+							breakout = true;
+						}
 					}
 					break;
 				}

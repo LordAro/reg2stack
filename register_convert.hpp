@@ -20,10 +20,10 @@ prog_snippet convert_instructions(It begin, It end)
 		 * requiring the length of the next instruction */
 		if (snippets.size() != 0) {
 			auto &last = snippets.back();
-			auto brzero_idx = std::find_if(last.begin(), last.end(),
-					[](const j5::instruction &i){return i.code == j5::op_t::BRZERO;});
-			if (brzero_idx != last.end()) {
-				brzero_idx->op = snippet.size() + 1;
+			auto &last_last = last.back();
+			if (last_last.op.which() == 1 && boost::get<uint16_t>(last_last.op) == 42 &&
+					(last_last.code == j5::op_t::BRZERO || last_last.code == j5::op_t::BRANCH)) {
+				last_last.op = snippet.size() + 1;
 			}
 		}
 		snippets.push_back(snippet);
