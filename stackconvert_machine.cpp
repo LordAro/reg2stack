@@ -7,7 +7,7 @@
 #include "util.hpp"
 
 /* Get cached instruction snippet, if it exists. Otherwise create it */
-std::pair<j5::program, uint16_t> convertmachine::get_snippet(uint16_t reg_pc, size_t optimise, bool verbose)
+std::pair<j5::program, uint16_t> convertmachine::get_snippet(uint16_t reg_pc, size_t optimise)
 {
 	auto section_it = this->section_cache.find(reg_pc);
 	if (section_it != this->section_cache.end()) {
@@ -21,10 +21,7 @@ std::pair<j5::program, uint16_t> convertmachine::get_snippet(uint16_t reg_pc, si
 		[](const dcpu16::instruction &i){return !i.label.empty();}
 	);
 	uint16_t distance = std::distance(this->reg_prog.begin() + reg_pc, next_label);
-	if (verbose) {
-		std::cout << "# Caching " << this->reg_prog.at(reg_pc)
-		          << " (" <<  distance << ")\n";
-	}
+	log<LOG_DEBUG>("# Caching ", this->reg_prog.at(reg_pc), " (",  distance, ")");
 	j5::program snippet = convert_instructions(this->reg_prog.begin() + reg_pc, next_label);
 	if (optimise >= 1) {
 		snippet = peephole_optimise(snippet);
@@ -37,7 +34,7 @@ std::pair<j5::program, uint16_t> convertmachine::get_snippet(uint16_t reg_pc, si
 	return this->section_cache[reg_pc];
 }
 
-void convertmachine::run_reg(const dcpu16::program &prog, bool verbose, bool speedlimit, size_t optimise)
+void convertmachine::run_reg(const dcpu16::program &prog, bool speedlimit, size_t optimise)
 {
 	this->terminate = false;
 	this->reg_prog = prog;
@@ -48,21 +45,21 @@ void convertmachine::run_reg(const dcpu16::program &prog, bool verbose, bool spe
 
 		j5::program snippet;
 		uint16_t distance;
-		std::tie(snippet, distance) = get_snippet(reg_pc, optimise, verbose);
+		std::tie(snippet, distance) = get_snippet(reg_pc, optimise);
 
 		/* Run instruction snippet */
-		std::cerr << prog.at(reg_pc) << '\n';
+		log<LOG_DEBUG>(prog.at(reg_pc));
 		for (size_t start_pc = this->pc;  this->pc - start_pc < snippet.size(); this->pc++) {
 			const auto &i = snippet.at(this->pc - start_pc);
 			if (skip > 0) {
 				skip--;
 				continue;
 			}
-			std::cerr << '\t' << i << '\n';
+			log<LOG_DEBUG>('\t', i);
 			auto new_pc = this->run_instruction(i);
 
 			bool breakout = false;
-			if (verbose) std::cout << this->register_dump() << '\n';
+			log<LOG_DEBUG2>(this->register_dump());
 			// branch specials
 			switch (i.code) {
 				case j5::op_t::BRZERO:
@@ -84,7 +81,7 @@ void convertmachine::run_reg(const dcpu16::program &prog, bool verbose, bool spe
 			}
 			if (breakout) break;
 		}
-		if (verbose) std::cout << '\n';
+		log<LOG_DEBUG>("");
 
 		if (speedlimit) {
 			std::this_thread::sleep_until(start + (std::chrono::milliseconds(100) * distance)); // arbitrary

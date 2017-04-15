@@ -2,6 +2,7 @@
 #define UTIL_HPP
 
 #include <algorithm>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -76,4 +77,33 @@ T ClrBit(T &x, const uint8_t y)
 	return x = static_cast<T>(x & ~(static_cast<T>(1U) << y));
 }
 
+enum log_level_t : size_t {
+    LOG_NOTHING,
+    LOG_INFO,
+    LOG_DEBUG,
+    LOG_DEBUG2
+};
+
+extern log_level_t GLOBAL_LOG_LEVEL;
+
+template <typename T>
+void log_r(T&& t)
+{
+	std::cout << std::forward<T>(t) << std::endl;
+}
+
+template <typename T, typename... Args>
+void log_r(T&& t, Args&&... obj)
+{
+	std::cout << std::forward<T>(t);
+	log_r(std::forward<Args>(obj)...);
+}
+
+template <log_level_t level, typename... Args>
+void log(Args&&... obj)
+{
+	if (level > GLOBAL_LOG_LEVEL) return;
+	std::cout << '[' << level << "] ";
+	log_r(std::forward<Args>(obj)...);
+}
 #endif /* UTIL_HPP */

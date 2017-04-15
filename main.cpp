@@ -6,6 +6,9 @@
 #include "register_machine.hpp"
 #include "stack_machine.hpp"
 #include "stackconvert_machine.hpp"
+#include "util.hpp"
+
+log_level_t GLOBAL_LOG_LEVEL = LOG_INFO; // default, not actually a constant
 
 std::string readFile(const std::string &filename)
 {
@@ -24,9 +27,9 @@ void printUsage(const char *arg0)
 		"%s - an interpreter of some sort.\n"
 		"Does something with stacks\n"
 		"\n"
-		"Usage: %s [-v] [-f] [-o num] [-scr] file\n"
+		"Usage: %s [-v lvl] [-f] [-o num] [-scr] file\n"
 		"\n"
-		"-v      -  Verbose output\n"
+		"-v lvl  -  Output verbosity - 0-3\n"
 		"-f      -  Fast speed\n"
 		"-o num  -  Only has affect with -c. Level 1 indicates single\n"
 		"           peephole pass, Level 2 does Koopman-style optimisation\n"
@@ -46,16 +49,15 @@ enum class mode {
 
 int main(int argc, char **argv)
 {
-	bool verbose = false;
 	bool speedlimit = true;
 	size_t optimise = 0;
 	mode m;
 	const char *filepath = "";
 	int c = 0;
-	while ((c = getopt(argc, argv, "hfvo:c:s:r:")) != -1) {
+	while ((c = getopt(argc, argv, "hfv:o:c:s:r:")) != -1) {
 		switch (c) {
 			case 'v':
-				verbose = true;
+				GLOBAL_LOG_LEVEL = static_cast<log_level_t>(atoi(optarg));
 				break;
 			case 'c':
 				m = mode::CONVERT;
@@ -94,40 +96,34 @@ int main(int argc, char **argv)
 		switch (m) {
 			case mode::REGISTER: {
 				dcpu16::program prog = dcpu16::tokenise_source(source);
-				if (verbose) {
-					for (const auto &ins : prog) std::cout << ins << "\n";
-				}
+				for (const auto &ins : prog) log<LOG_INFO>(ins);
 				dcpu16::machine mach;
-				mach.run(prog, verbose, speedlimit);
+				mach.run(prog, speedlimit);
 
 				break;
 			}
 			case mode::STACK: {
 				j5::program prog = j5::tokenise_source(source);
-				if (verbose) {
-					for (const auto &ins : prog) std::cout << ins << "\n";
-				}
+				for (const auto &ins : prog) log<LOG_INFO>(ins);
 				j5::machine mach;
-				mach.run(prog, verbose, speedlimit);
+				mach.run(prog, speedlimit);
 				break;
 			}
 			case mode::CONVERT: {
 				dcpu16::program prog = dcpu16::tokenise_source(source);
-				if (verbose) {
-					for (const auto &ins : prog) std::cout << ins << "\n";
-				}
+				for (const auto &ins : prog) log<LOG_INFO>(ins);
 				convertmachine mach;
-				mach.run_reg(prog, verbose, speedlimit, optimise);
+				mach.run_reg(prog,  speedlimit, optimise);
 				break;
 			}
 		}
 		std::cout << '\n';
 
 	} catch(const char *e) {
-		std::cerr << e << "\n";
+		log<LOG_NOTHING>(e);
 		return 1;
 	} catch(const std::string &e) {
-		std::cerr << e << "\n";
+		log<LOG_NOTHING>(e);
 		return 1;
 	}
 }

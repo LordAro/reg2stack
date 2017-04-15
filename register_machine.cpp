@@ -193,7 +193,7 @@ void machine::set_val(const operand_t &x, uint16_t val)
 	}
 }
 
-void machine::run(const program &prog, bool verbose, bool speedlimit)
+void machine::run(const program &prog, bool speedlimit)
 {
 	this->cur_prog = prog;
 	this->terminate = false;
@@ -211,7 +211,7 @@ void machine::run(const program &prog, bool verbose, bool speedlimit)
 		}
 
 		const auto &ins = this->cur_prog[pc];
-		std::cerr << ins << '\n';
+		log<LOG_DEBUG>(ins);
 		switch (ins.code) {
 			case op_t::OUT:
 				this->out_func(ins.b);
@@ -261,7 +261,7 @@ void machine::run(const program &prog, bool verbose, bool speedlimit)
 			default:
 				throw "Unrecognised instruction " + OP_T_STR.at((size_t)ins.code);
 		}
-		if (verbose) std::cout << this->register_dump() << '\n';
+		log<LOG_DEBUG2>(this->register_dump());
 		if (speedlimit) {
 			std::this_thread::sleep_until(start + std::chrono::milliseconds(100)); // arbitrary
 		}

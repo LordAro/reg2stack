@@ -144,7 +144,7 @@ uint16_t machine::run_instruction(const instruction &ins)
 	return this->pc + 1;
 }
 
-void machine::run(const program &prog, bool verbose, bool speedlimit)
+void machine::run(const program &prog, bool speedlimit)
 {
 	this->cur_prog = prog;
 	this->terminate = false;
@@ -153,10 +153,10 @@ void machine::run(const program &prog, bool verbose, bool speedlimit)
 		auto start = std::chrono::high_resolution_clock::now();
 
 		const auto &ins = this->cur_prog[pc];
-		std::cerr << ins << '\n';
+		log<LOG_DEBUG>(ins);
 		this->pc = this->run_instruction(ins);
 
-		if (verbose) std::cout << this->register_dump() << '\n';
+		log<LOG_DEBUG2>(this->register_dump());
 		if (speedlimit) {
 			std::this_thread::sleep_until(start + std::chrono::milliseconds(100)); // arbitrary
 		}

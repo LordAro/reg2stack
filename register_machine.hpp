@@ -135,7 +135,7 @@ program tokenise_source(const std::string &source);
 
 class machine {
 public:
-	void run(const program &prog, bool verbose, bool speedlimit);
+	void run(const program &prog, bool speedlimit);
 	std::string register_dump();
 
 private:
