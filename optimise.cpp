@@ -78,5 +78,31 @@ j5::program peephole_optimise(j5::program prog)
 
 j5::program stack_schedule(j5::program prog)
 {
+	std::vector<std::pair<size_t, size_t>> pairs;
+	for (size_t i = 0; i < prog.size() - 1; i++) {
+		if (prog[i].code != j5::op_t::SET || prog[i + 1].code != j5::op_t::STORE) continue;
+		for (size_t j = i + 2; j < prog.size() - 1; j++) {
+			if (prog[j].code != j5::op_t::SET || prog[j + 1].code != j5::op_t::LOAD || prog[i].op != prog[j].op) continue;
+			int stack_depth = std::count_if(pairs.begin(), pairs.end(), [i](auto &p){
+					return i > p.first && i < p.second;
+			});
+			if (stack_depth > 2) continue;
+
+			std::cout << "Found pair: " << prog[i] << ',' << prog[i+1] << "->" << prog[j] << ',' << prog[j+1] << " - distance: " << j-i << '\n';
+			pairs.push_back({i, j});
+
+			j5::op_t ins;
+			switch (stack_depth) {
+				case 0: ins = j5::op_t::DUP; break;
+				case 1: ins = j5::op_t::TUCK2; break;
+				case 2: ins = j5::op_t::TUCK3; break;
+				default: throw "Not reached";
+			}
+			prog.insert(prog.begin() + i, j5::make_instruction(ins));
+			prog.erase(prog.begin() + j + 1); // + 1 because of insert
+			prog.erase(prog.begin() + j + 1); // also + 1 because of previous erase
+		}
+	}
+
 	return prog;
 }
