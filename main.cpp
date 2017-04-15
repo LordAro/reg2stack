@@ -3,9 +3,9 @@
 #include <iterator>
 #include <unistd.h>
 
+#include "convert_machine.hpp"
 #include "register_machine.hpp"
 #include "stack_machine.hpp"
-#include "stackconvert_machine.hpp"
 #include "util.hpp"
 
 log_level_t GLOBAL_LOG_LEVEL = LOG_INFO; // default, not actually a constant

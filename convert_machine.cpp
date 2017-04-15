@@ -1,9 +1,9 @@
 #include <iostream>
 #include <thread>
 
+#include "convert_machine.hpp"
 #include "optimise.hpp"
 #include "register_convert.hpp"
-#include "stackconvert_machine.hpp"
 #include "util.hpp"
 
 /* Get cached instruction snippet, if it exists. Otherwise create it */
