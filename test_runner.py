@@ -10,12 +10,12 @@ FILEPATH = 'examples/{}.{}'
 
 REGISTER_PROGS = ['test1', 'test2', 'bsort']
 STACK_PROGS = ['loop']
-CONVERSIONS = ['simple', 'loop', 'bsort', 'fib20']
+CONVERSIONS = ['simple', 'loop', 'bsort', 'fib20', 'primes']
 
 def get_prog(name, typerun):
     """Builds the list of commandline args for a test program
     """
-    args = ['./reg2stack', '-f']
+    args = ['./reg2stack', '-f', '-v0']
     if typerun not in ['r', 's', 'c']:
         raise 'Unknown run type'
     args.append('-' + typerun)
