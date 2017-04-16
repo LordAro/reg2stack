@@ -117,6 +117,7 @@ public:
 	void run(const program &prog, bool speedlimit);
 	std::string register_dump();
 
+	static const std::map<op_t, int> STACK_DIFF;
 protected:
 	uint16_t pc;
 	std::stack<uint16_t> stack;

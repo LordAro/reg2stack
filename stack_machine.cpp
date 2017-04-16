@@ -215,6 +215,47 @@ std::string machine::register_dump()
 	// PUSH,POP special
 }};
 
+
+/* static */ const std::map<op_t, int> machine::STACK_DIFF {{
+	{op_t::ADD, -1},
+	{op_t::SUB, -1},
+	{op_t::INC,  0},
+	{op_t::DEC,  0},
+	{op_t::AND, -1},
+	{op_t::OR,  -1},
+	{op_t::NOT,  0},
+	{op_t::XOR, -1},
+	{op_t::SHR, -1},
+	{op_t::SHL, -1},
+
+	{op_t::TGT, 0},
+	{op_t::TLT, 0},
+	{op_t::TEQ, 0},
+	{op_t::TSZ, 0},
+
+	// SSET unimplemented
+	{op_t::SET,    1},
+	{op_t::LOAD,   0},
+	{op_t::STORE, -2},
+	{op_t::BRANCH, 0},
+	{op_t::BRZERO, 0},
+//	{op_t::IBRANCH, },
+//	{op_t::CALL,    },
+//	{op_t::RETURN,  },
+	{op_t::STOP,   0},
+	{op_t::OUT,    0},
+
+	{op_t::DROP, -1},
+	{op_t::DUP,   1},
+	{op_t::SWAP,  0},
+	{op_t::RSD3,  0},
+	{op_t::RSU3,  0},
+	{op_t::TUCK2, 1},
+	{op_t::TUCK3, 1},
+	{op_t::COPY3, 1},
+	// PUSH,POP special
+}};
+
 void machine::set_func(uint16_t v)
 {
 	this->stack.push(v);
