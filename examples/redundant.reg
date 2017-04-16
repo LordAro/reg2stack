@@ -1,0 +1,18 @@
+SET A, 23
+SET C, 7
+
+ADD X, A ; b = a + c
+ADD X, C
+SET B, X
+
+SET X, B ; a = b + 5
+ADD X, 5
+SET A, X
+
+SET X, B ; c = b + a
+ADD X, A
+SET C, X
+
+OUT B
+OUT A
+OUT C
