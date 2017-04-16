@@ -19,28 +19,28 @@ auto patchVector(Vector v, F&& f)
 	return v;
 }
 
-const auto optimise_addone = [](auto &v, auto a, auto b) {
+const auto opt_addone = [](auto &v, auto a, auto b) {
 	if (a->code == j5::op_t::SET && a->op.which() == 1 && boost::get<uint16_t>(a->op) == 1 && b->code == j5::op_t::ADD) {
 		*a = j5::make_instruction(j5::op_t::INC);
 		v.erase(b);
 	}
 };
 
-const auto optimise_subone = [](auto &v, auto a, auto b) {
+const auto opt_subone = [](auto &v, auto a, auto b) {
 	if (a->code == j5::op_t::SET && a->op.which() == 1 && boost::get<uint16_t>(a->op) == 1 && b->code == j5::op_t::SUB) {
 		*a = j5::make_instruction(j5::op_t::DEC);
 		v.erase(b);
 	}
 };
 
-const auto optimise_testzero = [](auto &v, auto a, auto b) {
+const auto opt_testzero = [](auto &v, auto a, auto b) {
 	if (a->code == j5::op_t::SET && a->op.which() == 0 && boost::get<uint16_t>(a->op) == 1 && b->code == j5::op_t::TEQ) {
 		*a = j5::make_instruction(j5::op_t::TSZ);
 		v.erase(b);
 	}
 };
 
-const auto optimise_storeload = [](auto &v, auto a, auto b, auto c, auto d) {
+const auto opt_storeload = [](auto &v, auto a, auto b, auto c, auto d) {
 	if (a->code == j5::op_t::SET && c->code == j5::op_t::SET
 			&& b->code == j5::op_t::STORE && d->code == j5::op_t::LOAD
 			&& a->op == c->op) {
@@ -51,12 +51,19 @@ const auto optimise_storeload = [](auto &v, auto a, auto b, auto c, auto d) {
 	}
 };
 
+const auto opt_dupswap = [](auto &v, auto a, auto b) {
+	if (a->code == j5::op_t::DUP && b->code == j5::op_t::SWAP) {
+		v.erase(b);
+	}
+};
+
 j5::program peephole_optimise(j5::program prog)
 {
-	prog = patchVector<2>(prog, optimise_addone);
-	prog = patchVector<2>(prog, optimise_subone);
-	prog = patchVector<2>(prog, optimise_testzero);
-	prog = patchVector<4>(prog, optimise_storeload);
+	prog = patchVector<2>(prog, opt_addone);
+	prog = patchVector<2>(prog, opt_subone);
+	prog = patchVector<2>(prog, opt_testzero);
+	prog = patchVector<4>(prog, opt_storeload);
+	prog = patchVector<2>(prog, opt_dupswap);
 	return prog;
 }
 
