@@ -33,10 +33,12 @@ const auto opt_subone = [](auto &v, auto a, auto b) {
 	}
 };
 
-const auto opt_testzero = [](auto &v, auto a, auto b) {
+const auto opt_testzero = [](auto &v, auto a, auto b, auto c) {
 	if (a->code == j5::op_t::SET && a->op.which() == 0 && boost::get<uint16_t>(a->op) == 1 && b->code == j5::op_t::TEQ) {
+		assert(c->code == j5::op_t::DROP);
 		*a = j5::make_instruction(j5::op_t::TSZ);
 		v.erase(b);
+		v.erase(c);
 	}
 };
 
@@ -57,13 +59,29 @@ const auto opt_dupswap = [](auto &v, auto a, auto b) {
 	}
 };
 
+const auto opt_swapswap = [](auto &v, auto a, auto b) {
+	if (a->code == j5::op_t::SWAP && b->code == j5::op_t::SWAP) {
+		v.erase(a);
+		v.erase(b);
+	}
+};
+
+const auto opt_setdrop = [](auto &v, auto a, auto b) {
+	if (a->code == j5::op_t::SET && b->code == j5::op_t::DROP) {
+		v.erase(a);
+		v.erase(b);
+	}
+};
+
 j5::program peephole_optimise(j5::program prog)
 {
 	prog = patchVector<2>(prog, opt_addone);
 	prog = patchVector<2>(prog, opt_subone);
-	prog = patchVector<2>(prog, opt_testzero);
+	prog = patchVector<3>(prog, opt_testzero);
 	prog = patchVector<4>(prog, opt_storeload);
 	prog = patchVector<2>(prog, opt_dupswap);
+	prog = patchVector<2>(prog, opt_swapswap);
+	prog = patchVector<2>(prog, opt_setdrop);
 	return prog;
 }
 
