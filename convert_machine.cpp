@@ -43,10 +43,10 @@ void convertmachine::run_reg(const dcpu16::program &prog, bool speedlimit, size_
 	for (uint16_t reg_pc = 0; !this->terminate && reg_pc < this->reg_prog.size();) {
 		auto start = std::chrono::high_resolution_clock::now();
 
-		log<LOG_DEBUG>(prog.at(reg_pc));
 		j5::program snippet;
 		uint16_t distance;
 		std::tie(snippet, distance) = get_snippet(reg_pc, optimise);
+		log<LOG_DEBUG>(prog.at(reg_pc), "(size: ", snippet.size(), ")");
 
 		/* Run instruction snippet */
 		for (size_t start_pc = this->pc;  this->pc - start_pc < snippet.size(); this->pc++) {
