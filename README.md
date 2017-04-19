@@ -40,3 +40,11 @@ This will result in a lot of output. If you get rid of the `-v` flag and ignore 
 * `-s`:  Stack (J5) interpreter
 * `-r`:  Register (DCPU-16) interpreter
 
+### Known bugs
+
+How the stack scheduler determines blocks is very stupid, as it just splits
+based on labels. Therefore, in the case that a loop doesn't have a determined
+"end" point specified with a label, the optimiser will think that the rest of
+the program is a single block, i.e. including the stuff outside the loop
+definition. A workaround is to add an (unused) label at the end of the loop
+"block"
