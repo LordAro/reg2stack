@@ -11,7 +11,7 @@ FILEPATH = 'examples/{}.{}'
 
 REGISTER_PROGS = ['test1', 'test2', 'bsort']
 STACK_PROGS = ['loop']
-CONVERSIONS = ['simple', 'loop', 'bsort', 'fib20', 'primes', 'redundant']
+CONVERSIONS = ['simple', 'loop', 'redundant', 'bsort', 'fib20', 'primes', 'tri100']
 
 def get_prog(name, typerun, add_args=None, verbose=0):
     """Builds the list of commandline args for a test program
