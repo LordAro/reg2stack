@@ -157,41 +157,28 @@ prog_snippet sub_snippet(const dcpu16::instruction &ins)
 	return ret;
 }
 
-prog_snippet if_snippet(const dcpu16::instruction &ins, j5::op_t test_op, bool swap)
+prog_snippet if_snippet(const dcpu16::instruction &ins, j5::op_t test_op, bool invert)
 {
 	prog_snippet b_snip = value_on_stack(ins.b);
 	prog_snippet a_snip = value_on_stack(ins.a);
 	prog_snippet ret;
 
-	if (!swap) ret.insert(ret.end(), b_snip.begin(), b_snip.end());
+	/* Swapped as the LT/GT instructions do top <> next
+	 * Other instructions don't care */
 	ret.insert(ret.end(), a_snip.begin(), a_snip.end());
-	if (swap) ret.insert(ret.end(), b_snip.begin(), b_snip.end());
+	ret.insert(ret.end(), b_snip.begin(), b_snip.end());
 
 	ret.emplace_back(j5::make_instruction(test_op));
-
 	ret.emplace_back(j5::make_instruction(j5::op_t::DROP));
 	ret.emplace_back(j5::make_instruction(j5::op_t::DROP));
-	/* Actual length is handled in the main loop, as this
-	 * requires the generated length of the next instruction. */
-	ret.emplace_back(j5::make_instruction(j5::op_t::BRZERO, 42));
-	return ret;
-}
-
-prog_snippet ife_snippet(const dcpu16::instruction &ins)
-{
-	prog_snippet b_snip = value_on_stack(ins.b);
-	prog_snippet a_snip = value_on_stack(ins.a);
-	prog_snippet ret;
-
-	ret.insert(ret.end(), b_snip.begin(), b_snip.end());
-	ret.insert(ret.end(), a_snip.begin(), a_snip.end());
-	ret.emplace_back(j5::make_instruction(j5::op_t::TEQ));
-	ret.emplace_back(j5::make_instruction(j5::op_t::DROP));
-	ret.emplace_back(j5::make_instruction(j5::op_t::DROP));
-	ret.emplace_back(j5::make_instruction(j5::op_t::BRZERO, 2));
-	/* Actual length is handled in the main loop, as this
-	 * requires the generated length of the next instruction. */
-	ret.emplace_back(j5::make_instruction(j5::op_t::BRANCH, 42));
+	if (invert) {
+		/* Actual length is handled in the main loop, as this
+		 * requires the generated length of the next instruction. */
+		ret.emplace_back(j5::make_instruction(j5::op_t::BRZERO, 42));
+	} else {
+		ret.emplace_back(j5::make_instruction(j5::op_t::BRZERO, 2));
+		ret.emplace_back(j5::make_instruction(j5::op_t::BRANCH, 42));
+	}
 	return ret;
 }
 
@@ -210,10 +197,10 @@ prog_snippet convert_instruction(const dcpu16::instruction &r)
 		{dcpu16::op_t::ADD, &add_snippet},
 		{dcpu16::op_t::SUB, &sub_snippet},
 		{dcpu16::op_t::OUT, &out_snippet},
-		{dcpu16::op_t::IFN, std::bind(&if_snippet, _1, j5::op_t::TEQ, false)},
-		{dcpu16::op_t::IFG, std::bind(&if_snippet, _1, j5::op_t::TLT, true)},
-		{dcpu16::op_t::IFE, &ife_snippet},
-		{dcpu16::op_t::IFL, std::bind(&if_snippet, _1, j5::op_t::TGT, true)},
+		{dcpu16::op_t::IFN, std::bind(&if_snippet, _1, j5::op_t::TEQ, true)},
+		{dcpu16::op_t::IFG, std::bind(&if_snippet, _1, j5::op_t::TGT, false)},
+		{dcpu16::op_t::IFE, std::bind(&if_snippet, _1, j5::op_t::TEQ, false)},
+		{dcpu16::op_t::IFL, std::bind(&if_snippet, _1, j5::op_t::TLT, false)},
 	};
 	auto keyval = conv_map.find(r.code);
 	if (keyval != conv_map.end()) {
