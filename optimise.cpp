@@ -135,10 +135,7 @@ j5::program stack_schedule(j5::program prog)
 					return a + j5::machine::STACK_DIFF.at(b.code);
 				}
 		);
-		size_t unfinished_pairs = std::count_if(pairs.begin(), pairs.end(),
-				[i, j](auto &p) { return i < p.first && p.first < j && j < p.second; });
 
-		assert(stack_diff + unfinished_pairs >= 0);
 		if (stack_diff > 2) throw "Not reached"; // TODO: not attempt?
 		switch (stack_diff) {
 			case 1:
