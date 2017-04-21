@@ -46,7 +46,9 @@ void convertmachine::run_reg(const dcpu16::program &prog, bool speedlimit, size_
 		j5::program snippet;
 		uint16_t distance;
 		std::tie(snippet, distance) = get_snippet(reg_pc, optimise);
-		log<LOG_DEBUG>(prog.at(reg_pc), "(size: ", snippet.size(), ")");
+
+		size_t memcount = std::count_if(snippet.begin(), snippet.end(), [](const auto &i){return i.code == j5::op_t::LOAD || i.code == j5::op_t::STORE;});
+		log<LOG_DEBUG>(prog.at(reg_pc), "(size: ", snippet.size(), ", ", memcount, ")");
 
 		/* Run instruction snippet */
 		for (size_t start_pc = this->pc;  this->pc - start_pc < snippet.size(); this->pc++) {
