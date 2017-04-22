@@ -34,18 +34,26 @@ std::pair<j5::program, uint16_t> convertmachine::get_snippet(uint16_t reg_pc, si
 	return this->section_cache[reg_pc];
 }
 
-void convertmachine::run_reg(const dcpu16::program &prog, bool speedlimit, size_t optimise)
+void convertmachine::run_reg(const dcpu16::program &prog, bool speedlimit, size_t optimise, bool cache)
 {
 	this->terminate = false;
 	this->reg_prog = prog;
+	size_t program_cost = 0;
 	size_t skip = 0;
 	this->pc = 0;
 	for (uint16_t reg_pc = 0; !this->terminate && reg_pc < this->reg_prog.size();) {
 		auto start = std::chrono::high_resolution_clock::now();
 
+		bool is_cached = cache && this->section_cache.find(reg_pc) != this->section_cache.end();
 		j5::program snippet;
 		uint16_t distance;
 		std::tie(snippet, distance) = get_snippet(reg_pc, optimise);
+
+		if (is_cached) {
+			program_cost += 1; // lookup cost
+		} else {
+			program_cost += distance * 10; // caching cost
+		}
 
 		size_t memcount = std::count_if(snippet.begin(), snippet.end(), [](const auto &i){return i.code == j5::op_t::LOAD || i.code == j5::op_t::STORE;});
 		log<LOG_DEBUG>(prog.at(reg_pc), "(size: ", snippet.size(), ", ", memcount, ")");
@@ -85,6 +93,20 @@ void convertmachine::run_reg(const dcpu16::program &prog, bool speedlimit, size_
 				default:
 					break;
 			}
+
+			switch (i.code) {
+				case j5::op_t::BRZERO:
+				case j5::op_t::BRANCH:
+					program_cost += 2; // branch cost
+					break;
+				case j5::op_t::LOAD:
+				case j5::op_t::STORE:
+					program_cost += 3;
+					break;
+				default:
+					program_cost += 1;
+					break;
+			}
 			if (breakout) break;
 		}
 		log<LOG_DEBUG>("");
@@ -94,6 +116,7 @@ void convertmachine::run_reg(const dcpu16::program &prog, bool speedlimit, size_
 		}
 		reg_pc += distance;
 	}
+	log<LOG_DEBUG>("Program cost: ", program_cost);
 }
 
 uint16_t convertmachine::find_label(const std::string &l)

@@ -51,10 +51,11 @@ int main(int argc, char **argv)
 {
 	bool speedlimit = true;
 	size_t optimise = 0;
+	bool nocache = false;
 	mode m;
 	const char *filepath = "";
 	int c = 0;
-	while ((c = getopt(argc, argv, "hfv:o:c:s:r:")) != -1) {
+	while ((c = getopt(argc, argv, "hnfv:o:c:s:r:")) != -1) {
 		switch (c) {
 			case 'v':
 				GLOBAL_LOG_LEVEL = static_cast<log_level_t>(atoi(optarg));
@@ -73,6 +74,9 @@ int main(int argc, char **argv)
 				break;
 			case 'f':
 				speedlimit = false;
+				break;
+			case 'n':
+				nocache = true;
 				break;
 			case 'o':
 				optimise = atoi(optarg);
@@ -113,7 +117,7 @@ int main(int argc, char **argv)
 				dcpu16::program prog = dcpu16::tokenise_source(source);
 				for (const auto &ins : prog) log<LOG_INFO>(ins);
 				convertmachine mach;
-				mach.run_reg(prog,  speedlimit, optimise);
+				mach.run_reg(prog, speedlimit, optimise, !nocache);
 				break;
 			}
 		}
